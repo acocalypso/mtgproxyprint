@@ -17,8 +17,9 @@ const PAPER_CONFIGS: Record<string, PaperConfig> = {
 const CARD_WIDTH_MM = 63;
 const CARD_HEIGHT_MM = 88;
 const CUT_MARK_THICKNESS_MM = 0.2;
-const CUT_MARK_LENGTH_MM = 3;
+const CUT_MARK_LENGTH_MM = 4;
 const PAGE_MARGIN_MM = 10;
+const BLEED_MM = 3;
 
 
 export interface Tile {
@@ -46,7 +47,7 @@ export function buildHtml(tiles: Tile[], options: LayoutOptions): string {
   }
 
   const pagesMarkup = pages
-    .map((pageCards, pageIndex) => createPageMarkup(pageCards, pageIndex, options.cutMarks, paperConfig))
+    .map((pageCards, pageIndex) => createPageMarkup(pageCards, pageIndex, options.cutMarks, paperConfig, sanitizedGap))
     .join('\n');
 
   return `<!DOCTYPE html>
@@ -94,7 +95,7 @@ export function buildHtml(tiles: Tile[], options: LayoutOptions): string {
         display: grid;
         grid-template-columns: repeat(${paperConfig.cardsPerRow}, var(--card-width));
         grid-template-rows: repeat(${paperConfig.cardsPerColumn}, var(--card-height));
-        ${sanitizedGap > 0 ? `gap: var(--gap);` : ''}
+        ${sanitizedGap > 0 ? `gap: var(--gap);` : `gap: 0; margin: 0; padding: 0;`}
         justify-content: center;
         align-content: center;
       }
@@ -105,6 +106,9 @@ export function buildHtml(tiles: Tile[], options: LayoutOptions): string {
         height: var(--card-height);
         page-break-inside: avoid;
         overflow: visible;
+        margin: 0;
+        padding: 0;
+        border: none;
       }
 
       .tile img {
@@ -112,47 +116,32 @@ export function buildHtml(tiles: Tile[], options: LayoutOptions): string {
         height: 100%;
         object-fit: cover;
         display: block;
-        border-radius: 1mm;
+        border-radius: 0;
+        margin: 0;
+        padding: 0;
       }
 
-      .cut-mark {
+      .cut-marks-container {
         position: absolute;
-        background: #000;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
-      /* Small tick marks extending just outside the card edges */
-      .cut-mark.horizontal {
-        width: 2mm;
-        height: var(--cut-mark-thickness);
-        left: 50%;
-        transform: translateX(-50%);
+      .cut-marks-svg {
+        position: relative;
       }
 
-      .cut-mark.vertical {
-        width: var(--cut-mark-thickness);
-        height: 2mm;
-        top: 50%;
-        transform: translateY(-50%);
-      }
-
-      /* Top edge mark - small tick extending upward */
-      .cut-mark.top {
-        top: -2mm;
-      }
-
-      /* Bottom edge mark - small tick extending downward */
-      .cut-mark.bottom {
-        bottom: -2mm;
-      }
-
-      /* Left edge mark - small tick extending leftward */
-      .cut-mark.left {
-        left: -2mm;
-      }
-
-      /* Right edge mark - small tick extending rightward */
-      .cut-mark.right {
-        right: -2mm;
+      .cut-mark-tick {
+        stroke: #000;
+        stroke-width: 0.75px;
+        stroke-linecap: butt;
       }
     </style>
   </head>
@@ -176,29 +165,74 @@ function expandTiles(tiles: Tile[]): Array<{ image: string; label?: string }> {
   return expanded;
 }
 
-function createPageMarkup(pageCards: Array<{ image: string; label?: string }>, pageIndex: number, cutMarks: boolean, paperConfig: PaperConfig): string {
+function createPageMarkup(pageCards: Array<{ image: string; label?: string }>, pageIndex: number, cutMarks: boolean, paperConfig: PaperConfig, gapMm: number): string {
   const tilesMarkup = pageCards
-    .map((tile, index) => createTileMarkup(tile, pageIndex * paperConfig.maxCardsPerPage + index, cutMarks))
+    .map((tile, index) => createTileMarkup(tile, pageIndex * paperConfig.maxCardsPerPage + index, false))
     .join('\n');
+
+  const cutMarksMarkup = cutMarks ? createCutMarksOverlay(paperConfig, gapMm) : '';
 
   return `<div class="page">
     <div class="grid">
       ${tilesMarkup}
     </div>
+    ${cutMarksMarkup}
+  </div>`;
+}
+
+function createCutMarksOverlay(paperConfig: PaperConfig, gapMm: number): string {
+  const rows = paperConfig.cardsPerColumn;
+  const cols = paperConfig.cardsPerRow;
+  const trimW = CARD_WIDTH_MM;
+  const trimH = CARD_HEIGHT_MM;
+  const gap = Math.max(0, gapMm);
+  const markLen = CUT_MARK_LENGTH_MM;
+  
+  // Calculate grid dimensions with actual gap
+  const gridW = cols * trimW + (cols - 1) * gap;
+  const gridH = rows * trimH + (rows - 1) * gap;
+  
+  let ticksMarkup = '';
+  
+  // Generate cut marks for each card - positioned exactly at card boundaries
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const cardX = col * (trimW + gap);
+      const cardY = row * (trimH + gap);
+      
+      // Card boundaries
+      const left = cardX;
+      const right = cardX + trimW;
+      const top = cardY;
+      const bottom = cardY + trimH;
+      
+      const centerX = cardX + trimW / 2;
+      const centerY = cardY + trimH / 2;
+      
+      // Top edge mark - vertical line extending above the card
+      ticksMarkup += `<line class="cut-mark-tick" x1="${centerX}" y1="${top - markLen}" x2="${centerX}" y2="${top}" />\n`;
+      
+      // Bottom edge mark - vertical line extending below the card
+      ticksMarkup += `<line class="cut-mark-tick" x1="${centerX}" y1="${bottom}" x2="${centerX}" y2="${bottom + markLen}" />\n`;
+      
+      // Left edge mark - horizontal line extending left of the card
+      ticksMarkup += `<line class="cut-mark-tick" x1="${left - markLen}" y1="${centerY}" x2="${left}" y2="${centerY}" />\n`;
+      
+      // Right edge mark - horizontal line extending right of the card
+      ticksMarkup += `<line class="cut-mark-tick" x1="${right}" y1="${centerY}" x2="${right + markLen}" y2="${centerY}" />\n`;
+    }
+  }
+  
+  return `<div class="cut-marks-container">
+    <svg class="cut-marks-svg" width="${gridW + markLen * 2}mm" height="${gridH + markLen * 2}mm" viewBox="${-markLen} ${-markLen} ${gridW + markLen * 2} ${gridH + markLen * 2}" xmlns="http://www.w3.org/2000/svg">
+      ${ticksMarkup}
+    </svg>
   </div>`;
 }
 
 function createTileMarkup(tile: { image: string; label?: string }, index: number, cutMarks: boolean): string {
-  const cutMarkup = cutMarks
-    ? `<span class="cut-mark horizontal top"></span>
-       <span class="cut-mark horizontal bottom"></span>
-       <span class="cut-mark vertical left"></span>
-       <span class="cut-mark vertical right"></span>`
-    : '';
-
   return `<div class="tile" data-index="${index}">
     <img src="${escapeAttribute(tile.image)}" alt="Card image" />
-    ${cutMarkup}
   </div>`;
 }
 

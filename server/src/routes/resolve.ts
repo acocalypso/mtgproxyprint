@@ -241,12 +241,9 @@ router.post('/resolve', async (req: Request, res: Response) => {
       if (card && item) {
         const resolvedItems = await applyCard(item, client.toResolvedCard(card), card);
         
-        // If this is a double-sided card, replace the single item with multiple items
-        if (resolvedItems.length > 1) {
-          items.splice(currentIndex, 1, ...resolvedItems);
-        }
-        
+        // Add resolved items to expandedItems array
         resolvedItems.forEach((resolvedItem: ResolveItem) => {
+          expandedItems.push(resolvedItem);
           surfaceLangMismatch(resolvedItem, requestedLang);
         });
         
@@ -262,10 +259,14 @@ router.post('/resolve', async (req: Request, res: Response) => {
     }
   }
 
+  // Add any remaining unresolved items to the final response
   for (const index of unresolved) {
     const item = items[index];
-    if (item && !item.error) {
-      item.error = buildUnresolvedMessage(parsedLines[index]);
+    if (item) {
+      if (!item.error) {
+        item.error = buildUnresolvedMessage(parsedLines[index]);
+      }
+      expandedItems.push(item);
     }
   }
 

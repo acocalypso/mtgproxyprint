@@ -107,7 +107,27 @@ function normalizeTiles(rawTiles: PdfRequestBody['tiles']): Tile[] {
 async function getBrowser(): Promise<Browser> {
   if (!browserPromise) {
     browserPromise = puppeteer.launch({
-      args: ['--no-sandbox', '--font-render-hinting=none']
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--disable-gpu',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
+        '--font-render-hinting=none',
+        '--no-default-browser-check',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--memory-pressure-off',
+        '--max_old_space_size=4096'
+      ],
+      headless: true,
+      timeout: 60000,
+      protocolTimeout: 60000
     });
   }
   return browserPromise;

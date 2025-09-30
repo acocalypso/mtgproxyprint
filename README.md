@@ -38,8 +38,11 @@ A modern, professional web application for generating high-quality print-ready P
 
 - **Node.js 18+** (fetch API required)
 - **npm 9+** (included with Node.js 18)
+- **Docker** (optional, for containerized deployment)
 
 ### Quick Start
+
+#### Option 1: Local Development
 
 1. **Install dependencies:**
    ```powershell
@@ -58,6 +61,24 @@ A modern, professional web application for generating high-quality print-ready P
    npm run build
    npm run start
    ```
+
+#### Option 2: Docker (Recommended for Production)
+
+1. **Production deployment:**
+   ```powershell
+   npm run docker:up
+   ```
+   - Application: `http://localhost`
+   - API: `http://localhost/api` (backend not directly exposed)
+
+2. **Development with Docker:**
+   ```powershell
+   npm run docker:dev
+   ```
+   - Frontend: `http://localhost:5173`
+   - Backend API: `http://localhost:3000` (for debugging only)
+
+📖 **For complete Docker documentation, see [DOCKER.md](DOCKER.md)**
 
 ### 🧪 Testing
 

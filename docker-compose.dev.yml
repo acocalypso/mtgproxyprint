@@ -1,0 +1,43 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile.dev
+    # Backend not exposed externally - accessible via frontend proxy only
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+    volumes:
+      - ./server/src:/app/server/src:ro
+      - ./server/package.json:/app/server/package.json:ro
+      - ./server/tsconfig.json:/app/server/tsconfig.json:ro
+      - ./server/tsconfig.build.json:/app/server/tsconfig.build.json:ro
+      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.dev
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://server:3000
+    volumes:
+      - ./frontend/src:/app/frontend/src:ro
+      - ./frontend/package.json:/app/frontend/package.json:ro
+      - ./frontend/tsconfig.json:/app/frontend/tsconfig.json:ro
+      - ./frontend/tsconfig.node.json:/app/frontend/tsconfig.node.json:ro
+      - ./frontend/vite.config.ts:/app/frontend/vite.config.ts:ro
+      - ./frontend/index.html:/app/frontend/index.html:ro
+      - ./frontend/env.d.ts:/app/frontend/env.d.ts:ro
+      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+    restart: unless-stopped
+    depends_on:
+      - server
+
+networks:
+  default:
+    name: mtg-proxy-print-dev

@@ -244,37 +244,53 @@
           <span class="section-subtitle">Drag cards to reorder • Select different sets using dropdowns</span>
         </div>
         
-        <div class="preview-stats">
-          <div class="stat-pill">
-            <span class="stat-number">{{ totalTiles }}</span>
-            <span class="stat-label">card<span v-if="!isSingleTile">s</span></span>
+        <div class="section-controls">
+          <div class="preview-stats">
+            <div class="stat-pill">
+              <span class="stat-number">{{ totalTiles }}</span>
+              <span class="stat-label">card<span v-if="!isSingleTile">s</span></span>
+            </div>
+            
+            <div v-if="hasErrors" class="stat-pill stat-pill--error">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              <span>Issues found</span>
+            </div>
+            
+            <div v-else-if="hasWarnings" class="stat-pill stat-pill--warning">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2"/>
+                <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2"/>
+                <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              <span>Warnings</span>
+            </div>
+            
+            <div v-else class="stat-pill stat-pill--success">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2"/>
+                <polyline points="22,4 12,14.01 9,11.01" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              <span>Ready to print</span>
+            </div>
           </div>
-          
-          <div v-if="hasErrors" class="stat-pill stat-pill--error">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-              <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            <span>Issues found</span>
-          </div>
-          
-          <div v-else-if="hasWarnings" class="stat-pill stat-pill--warning">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2"/>
-              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2"/>
-              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            <span>Warnings</span>
-          </div>
-          
-          <div v-else class="stat-pill stat-pill--success">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2"/>
-              <polyline points="22,4 12,14.01 9,11.01" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            <span>Ready to print</span>
-          </div>
+
+          <button
+            type="button"
+            class="btn btn-secondary preview-download-btn"
+            @click="downloadAllTiles"
+            :disabled="status.downloadingAll || !hasDownloadableTiles"
+          >
+            <span v-if="status.downloadingAll">Downloading...</span>
+            <span v-else>⬇️ Download all cards</span>
+          </button>
         </div>
+      </div>
+
+      <div v-if="status.downloadError" class="download-error">
+        ❌ {{ status.downloadError }}
       </div>
 
       <div class="preview-grid" :style="previewGridStyle">
@@ -299,6 +315,20 @@
           >
             <img :src="tile.image" :alt="tile.label" loading="lazy" />
             <span v-if="tile.warning" class="tile-note">{{ tile.warning }}</span>
+
+            <button
+              class="tile-download-btn"
+              type="button"
+              :disabled="isTileDownloading(tile.key)"
+              @click.stop="downloadTileImage(tile, index)"
+              title="Download image"
+            >
+              <span v-if="isTileDownloading(tile.key)" class="tile-download-spinner"></span>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 3v12m0 0 5-5m-5 5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M5 19h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
             
             <!-- Remove/Restore button -->
             <button 
@@ -407,6 +437,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watchEffect, type CSSProperties } from 'vue';
+import JSZip from 'jszip';
 
 interface ResolveLine {
   qty: number;
@@ -472,7 +503,9 @@ const status = reactive({
   loadingResolve: false,
   loadingPdf: false,
   resolveError: null as string | null,
-  pdfError: null as string | null
+  pdfError: null as string | null,
+  downloadingAll: false,
+  downloadError: null as string | null
 });
 
 const search = reactive({
@@ -482,7 +515,7 @@ const search = reactive({
   error: null as string | null
 });
 
-let searchTimeout: number | null = null;
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 type ResolvedItemWithMeta = ResolveItem & { id: number };
 
@@ -505,6 +538,8 @@ const dragState = reactive({
   draggedIndex: -1,
   dragOverIndex: -1
 });
+
+const downloadingTiles = reactive<Record<string, boolean>>({});
 
 // Track which face is currently shown for double-sided cards
 const activeFaces = reactive<Map<string, number>>(new Map());
@@ -644,6 +679,7 @@ const hasResolvedItems = computed(() => resolvedItems.length > 0);
 const hasErrors = computed(() => resolvedItems.some((item) => Boolean(item.error)));
 const hasWarnings = computed(() => resolvedItems.some((item) => !item.error && item.warning));
 const canGeneratePdf = computed(() => (displayItems.value || []).some(item => item.image && item.line.qty > 0 && !item.error) && !status.loadingResolve);
+const hasDownloadableTiles = computed(() => previewTiles.value.some(tile => !tile.excluded));
 
 async function handlePreview() {
   status.resolveError = null;
@@ -746,6 +782,129 @@ async function handleGeneratePdf() {
     status.pdfError = error instanceof Error ? error.message : 'Failed to generate PDF.';
   } finally {
     status.loadingPdf = false;
+  }
+}
+
+function sanitizeBaseName(label: string): string {
+  const normalized = label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return normalized || 'card';
+}
+
+function extensionFromMime(mime: string | undefined, fallbackUrl: string): string {
+  if (mime) {
+    if (mime.startsWith('image/')) {
+      const value = mime.split('/')[1] || '';
+      if (value.toLowerCase() === 'jpeg') {
+        return 'jpg';
+      }
+      if (value) {
+        return value.toLowerCase();
+      }
+    }
+  }
+  const parsed = fallbackUrl.split('?')[0].split('#')[0];
+  const lastSegment = parsed.substring(parsed.lastIndexOf('/') + 1);
+  const match = lastSegment.match(/\.([a-z0-9]+)$/i);
+  return match ? match[1].toLowerCase() : 'png';
+}
+
+async function fetchImageBlob(imageUrl: string): Promise<{ blob: Blob; extension: string }> {
+  const response = await fetch(imageUrl, { mode: 'cors' });
+  if (!response.ok) {
+    throw new Error(`Failed to download image (${response.status})`);
+  }
+  const blob = await response.blob();
+  const extension = extensionFromMime(blob.type, imageUrl);
+  return { blob, extension };
+}
+
+function buildTileFilename(label: string, identifier: string | number | null, extension: string): string {
+  const base = sanitizeBaseName(label);
+  const suffix = identifier !== null && identifier !== undefined && `${identifier}` !== ''
+    ? `-${`${identifier}`.replace(/[^a-z0-9]+/g, '-')}`
+    : '';
+  return `${base}${suffix}.${extension}`;
+}
+
+function buildSequentialFilename(
+  label: string,
+  counts: Map<string, number>,
+  extension: string
+): string {
+  const base = sanitizeBaseName(label);
+  const current = (counts.get(base) ?? 0) + 1;
+  counts.set(base, current);
+  const suffix = current > 1 ? `-${current}` : '';
+  return `${base}${suffix}.${extension}`;
+}
+
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  anchor.rel = 'noopener';
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}
+
+function isTileDownloading(tileKey: string): boolean {
+  return Boolean(downloadingTiles[tileKey]);
+}
+
+async function downloadTileImage(tile: PreviewTile, index: number) {
+  const tileKey = tile.key || `tile-${index}`;
+  if (downloadingTiles[tileKey]) {
+    return;
+  }
+  try {
+    downloadingTiles[tileKey] = true;
+    status.downloadError = null;
+    const { blob, extension } = await fetchImageBlob(tile.image);
+    const filename = buildTileFilename(tile.label, tileKey.replace(/[^a-z0-9]+/g, '-'), extension);
+    triggerBlobDownload(blob, filename);
+  } catch (error) {
+    status.downloadError = error instanceof Error ? error.message : 'Failed to download image.';
+  } finally {
+    delete downloadingTiles[tileKey];
+  }
+}
+
+async function downloadAllTiles() {
+  if (status.downloadingAll) {
+    return;
+  }
+
+  const tilesToDownload = previewTiles.value.filter(tile => !tile.excluded);
+  if (tilesToDownload.length === 0) {
+    status.downloadError = 'No cards available to download.';
+    return;
+  }
+
+  status.downloadError = null;
+  status.downloadingAll = true;
+
+  try {
+    const zip = new JSZip();
+    const counts = new Map<string, number>();
+
+    for (const tile of tilesToDownload) {
+      const { blob, extension } = await fetchImageBlob(tile.image);
+      const filename = buildSequentialFilename(tile.label, counts, extension);
+      zip.file(filename, blob);
+    }
+
+    const bundled = await zip.generateAsync({ type: 'blob' });
+    triggerBlobDownload(bundled, 'mtg-proxy-cards.zip');
+  } catch (error) {
+    status.downloadError = error instanceof Error ? error.message : 'Failed to download images.';
+  } finally {
+    status.downloadingAll = false;
   }
 }
 
@@ -1819,6 +1978,27 @@ function getFilteredPrintings(item: ResolvedItemWithMeta): any[] {
   gap: 1rem;
 }
 
+.section-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.preview-download-btn {
+  min-width: 190px;
+  white-space: nowrap;
+}
+
+.download-error {
+  margin: 0 0 1rem 0;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
 .section-title h2 {
   font-size: 1.5rem;
   font-weight: 600;
@@ -1942,6 +2122,44 @@ function getFilteredPrintings(item: ResolvedItemWithMeta): any[] {
   z-index: 10;
 }
 
+.tile-download-btn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  color: #111827;
+  background-color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+}
+
+.tile-download-btn:hover:not(:disabled) {
+  background-color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.tile-download-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.tile-download-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(59, 130, 246, 0.2);
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
 .tile-remove-btn {
   background-color: rgba(220, 53, 69, 0.8);
 }
@@ -2017,6 +2235,16 @@ function getFilteredPrintings(item: ResolvedItemWithMeta): any[] {
     align-items: flex-start;
   }
   
+  .section-controls {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .preview-download-btn {
+    width: 100%;
+  }
+
   .preview-stats {
     flex-wrap: wrap;
   }

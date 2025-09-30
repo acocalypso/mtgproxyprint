@@ -277,7 +277,8 @@
             class="tile"
             :class="{
               'tile--dragging': dragState.draggedIndex === index,
-              'tile--drag-over': dragState.dragOverIndex === index
+              'tile--drag-over': dragState.dragOverIndex === index,
+              'tile--excluded': tile.excluded
             }"
             draggable="true"
             @dragstart="handleDragStart($event, index)"
@@ -288,6 +289,31 @@
           >
             <img :src="tile.image" :alt="tile.label" loading="lazy" />
             <span v-if="tile.warning" class="tile-note">{{ tile.warning }}</span>
+            
+            <!-- Remove/Restore button -->
+            <button 
+              v-if="!tile.excluded"
+              @click="removeCard(tile.key)"
+              class="tile-remove-btn"
+              title="Remove from PDF"
+              type="button"
+            >
+              ✕
+            </button>
+            <button 
+              v-else
+              @click="restoreCard(tile.key)"
+              class="tile-restore-btn"
+              title="Restore to PDF"
+              type="button"
+            >
+              ↶
+            </button>
+            
+            <!-- Excluded overlay -->
+            <div v-if="tile.excluded" class="tile-excluded-overlay">
+              <span class="excluded-text">Excluded</span>
+            </div>
           </div>
           
           <!-- Set Selection Dropdown - positioned below the tile container -->
@@ -423,12 +449,16 @@ type ResolvedItemWithMeta = ResolveItem & { id: number };
 
 const resolvedItems = reactive<ResolvedItemWithMeta[]>([]);
 
+// Track excluded/removed cards by their unique key
+const excludedCards = reactive<Set<string>>(new Set());
+
 interface PreviewTile {
   key: string;
   image: string;
   label: string;
   warning?: string;
   item?: ResolvedItemWithMeta; // Reference to the resolved item for dropdown access
+  excluded?: boolean; // Whether this tile is excluded from PDF generation
 }
 
 const previewTiles = ref<PreviewTile[]>([]);
@@ -480,12 +510,14 @@ watchEffect(() => {
     const repeats = Math.max(1, Math.floor(item.line.qty));
     
     for (let i = 0; i < repeats; i += 1) {
+      const tileKey = `${index}-${i}`;
       tiles.push({
-        key: `${index}-${i}`,
+        key: tileKey,
         image: item.image,
         label: item.card?.name ?? item.line.name,
         warning: item.warning,
-        item: i === 0 ? item : undefined // Only add item reference to first tile to avoid duplicate dropdowns
+        item: i === 0 ? item : undefined, // Only add item reference to first tile to avoid duplicate dropdowns
+        excluded: excludedCards.has(tileKey)
       });
     }
   });
@@ -495,6 +527,16 @@ watchEffect(() => {
 
 function getPreviewTiles(): PreviewTile[] {
   return previewTiles.value;
+}
+
+// Function to remove/exclude a card from PDF generation
+function removeCard(tileKey: string) {
+  excludedCards.add(tileKey);
+}
+
+// Function to restore a removed card
+function restoreCard(tileKey: string) {
+  excludedCards.delete(tileKey);
 }
 
 // Function to flip a double-sided card
@@ -604,13 +646,35 @@ async function handleGeneratePdf() {
   status.pdfError = null;
   status.loadingPdf = true;
 
-  const tiles = displayItems.value
-    .filter((item) => item.image && item.line.qty > 0 && !item.error)
-    .map((item) => ({
-      image: item.image as string,
-      qty: Math.max(1, Math.floor(item.line.qty)),
-      label: item.card?.name ?? item.line.name
-    }));
+  // Create tiles excluding removed cards
+  const tiles: Array<{ image: string; qty: number; label: string; }> = [];
+  const items = displayItems.value || [];
+  
+  items.forEach((item, index) => {
+    if (!item.image || item.line.qty <= 0 || item.error) {
+      return;
+    }
+    
+    const repeats = Math.max(1, Math.floor(item.line.qty));
+    let includedCount = 0;
+    
+    // Count how many copies of this card are not excluded
+    for (let i = 0; i < repeats; i += 1) {
+      const tileKey = `${index}-${i}`;
+      if (!excludedCards.has(tileKey)) {
+        includedCount++;
+      }
+    }
+    
+    // Only add to PDF if there are included copies
+    if (includedCount > 0) {
+      tiles.push({
+        image: item.image as string,
+        qty: includedCount,
+        label: item.card?.name ?? item.line.name
+      });
+    }
+  });
 
   try {
     const response = await fetch('/api/pdf', {
@@ -1689,11 +1753,78 @@ function getFilteredPrintings(item: ResolvedItemWithMeta): any[] {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+.tile--excluded {
+  opacity: 0.6;
+}
+
+.tile--excluded:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 .tile img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.tile-remove-btn,
+.tile-restore-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.tile-remove-btn {
+  background-color: rgba(220, 53, 69, 0.8);
+}
+
+.tile-remove-btn:hover {
+  background-color: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+}
+
+.tile-restore-btn {
+  background-color: rgba(40, 167, 69, 0.8);
+}
+
+.tile-restore-btn:hover {
+  background-color: rgba(40, 167, 69, 1);
+  transform: scale(1.1);
+}
+
+.tile-excluded-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.excluded-text {
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .tile-note {

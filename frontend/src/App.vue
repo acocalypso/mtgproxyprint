@@ -164,6 +164,8 @@
                   <option value="Letter">Letter (8.5 × 11 in)</option>
                   <option value="Legal">Legal (8.5 × 14 in)</option>
                   <option value="Tabloid">Tabloid (11 × 17 in)</option>
+                  <option value="A4-4x2">A4 Landscape 4×2 (8 cards)</option>
+                  <option value="Letter-4x2">Letter Landscape 4×2 (8 cards)</option>
                 </select>
               </div>
               
@@ -420,7 +422,7 @@ interface SearchResponse {
   results: SearchResult[];
 }
 
-type PaperSize = 'A4' | 'A3' | 'A5' | 'Letter' | 'Legal' | 'Tabloid';
+type PaperSize = 'A4' | 'A3' | 'A5' | 'Letter' | 'Legal' | 'Tabloid' | 'A4-4x2' | 'Letter-4x2';
 
 const form = reactive({
   decklist: '',

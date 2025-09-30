@@ -21,7 +21,7 @@ router.post('/pdf', async (req: Request, res: Response) => {
 
   const paperResolution = resolvePaper(body.paper);
   if (!paperResolution.valid) {
-    return res.status(400).json({ message: 'paper must be one of: A4, A3, A5, Letter, Legal, Tabloid' });
+    return res.status(400).json({ message: 'paper must be one of: A4, A3, A5, Letter, Legal, Tabloid, A4-4x2, Letter-4x2' });
   }
 
   const tiles = normalizeTiles(body.tiles);
@@ -42,11 +42,24 @@ router.post('/pdf', async (req: Request, res: Response) => {
     const browser = await getBrowser();
     page = await browser.newPage();
     await page.setContent(html, { waitUntil: ['load', 'networkidle0'] });
-    const buffer = await page.pdf({
+    
+    // Handle landscape paper formats
+    let pdfOptions: any = {
       printBackground: true,
-      preferCSSPageSize: true,
-      format: options.paper
-    });
+      preferCSSPageSize: true
+    };
+    
+    if (options.paper === 'A4-4x2') {
+      pdfOptions.format = 'A4';
+      pdfOptions.landscape = true;
+    } else if (options.paper === 'Letter-4x2') {
+      pdfOptions.format = 'Letter';
+      pdfOptions.landscape = true;
+    } else {
+      pdfOptions.format = options.paper;
+    }
+    
+    const buffer = await page.pdf(pdfOptions);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Length', buffer.length.toString());
@@ -63,7 +76,7 @@ router.post('/pdf', async (req: Request, res: Response) => {
   }
 });
 
-function resolvePaper(paper?: string): { paper: 'A4' | 'A3' | 'A5' | 'Letter' | 'Legal' | 'Tabloid'; valid: boolean } {
+function resolvePaper(paper?: string): { paper: 'A4' | 'A3' | 'A5' | 'Letter' | 'Legal' | 'Tabloid' | 'A4-4x2' | 'Letter-4x2'; valid: boolean } {
   if (!paper || typeof paper !== 'string' || !paper.trim()) {
     return { paper: 'A4', valid: true };
   }
@@ -81,6 +94,10 @@ function resolvePaper(paper?: string): { paper: 'A4' | 'A3' | 'A5' | 'Letter' | 
       return { paper: 'Legal', valid: true };
     case 'tabloid':
       return { paper: 'Tabloid', valid: true };
+    case 'a4-4x2':
+      return { paper: 'A4-4x2', valid: true };
+    case 'letter-4x2':
+      return { paper: 'Letter-4x2', valid: true };
     default:
       return { paper: 'A4', valid: false };
   }

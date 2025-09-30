@@ -11,7 +11,9 @@ const PAPER_CONFIGS: Record<string, PaperConfig> = {
   'A5': { cardsPerRow: 2, cardsPerColumn: 2, maxCardsPerPage: 4 },
   'Letter': { cardsPerRow: 3, cardsPerColumn: 3, maxCardsPerPage: 9 },
   'Legal': { cardsPerRow: 3, cardsPerColumn: 4, maxCardsPerPage: 12 },
-  'Tabloid': { cardsPerRow: 4, cardsPerColumn: 5, maxCardsPerPage: 20 }
+  'Tabloid': { cardsPerRow: 4, cardsPerColumn: 5, maxCardsPerPage: 20 },
+  'A4-4x2': { cardsPerRow: 4, cardsPerColumn: 2, maxCardsPerPage: 8 },
+  'Letter-4x2': { cardsPerRow: 4, cardsPerColumn: 2, maxCardsPerPage: 8 }
 };
 
 const CARD_WIDTH_MM = 63;
@@ -29,7 +31,7 @@ export interface Tile {
 }
 
 export interface LayoutOptions {
-  paper: 'A4' | 'A3' | 'A5' | 'Letter' | 'Legal' | 'Tabloid';
+  paper: 'A4' | 'A3' | 'A5' | 'Letter' | 'Legal' | 'Tabloid' | 'A4-4x2' | 'Letter-4x2';
   gapMm: number;
   cutMarks: boolean;
 }
@@ -39,6 +41,18 @@ export function buildHtml(tiles: Tile[], options: LayoutOptions): string {
   const paper = options.paper;
   const paperConfig = PAPER_CONFIGS[paper] || PAPER_CONFIGS['A4'];
   const copies = expandTiles(tiles);
+
+  // Calculate page size for custom formats
+  let pageSizeCSS = `size: ${paper};`;
+  if (paper === 'A4-4x2' || paper === 'Letter-4x2') {
+    if (paper === 'A4-4x2') {
+      // A4 landscape: 297mm x 210mm (landscape orientation)
+      pageSizeCSS = `size: A4 landscape;`;
+    } else if (paper === 'Letter-4x2') {
+      // Letter landscape: 11in x 8.5in = 279.4mm x 215.9mm (landscape orientation)
+      pageSizeCSS = `size: Letter landscape;`;
+    }
+  }
 
   // Group cards into pages based on paper size capacity
   const pages: Array<Array<{ image: string; label?: string }>> = [];
@@ -65,7 +79,7 @@ export function buildHtml(tiles: Tile[], options: LayoutOptions): string {
       }
 
       @page {
-        size: ${paper};
+        ${pageSizeCSS}
         margin: ${PAGE_MARGIN_MM}mm;
       }
 
@@ -84,6 +98,7 @@ export function buildHtml(tiles: Tile[], options: LayoutOptions): string {
         display: flex;
         align-items: center;
         justify-content: center;
+        position: relative;
         page-break-after: always;
       }
 
@@ -132,16 +147,19 @@ export function buildHtml(tiles: Tile[], options: LayoutOptions): string {
         display: flex;
         align-items: center;
         justify-content: center;
+        overflow: visible;
       }
 
       .cut-marks-svg {
         position: relative;
       }
 
-      .cut-mark-tick {
-        stroke: #000;
-        stroke-width: 0.75px;
-        stroke-linecap: butt;
+      .cut-line {
+        stroke: rgba(0, 0, 0, 0.7);
+        stroke-width: var(--cut-mark-thickness);
+        stroke-linecap: square;
+        vector-effect: non-scaling-stroke;
+        shape-rendering: crispEdges;
       }
     </style>
   </head>
@@ -186,46 +204,45 @@ function createCutMarksOverlay(paperConfig: PaperConfig, gapMm: number): string 
   const trimW = CARD_WIDTH_MM;
   const trimH = CARD_HEIGHT_MM;
   const gap = Math.max(0, gapMm);
-  const markLen = CUT_MARK_LENGTH_MM;
-  
-  // Calculate grid dimensions with actual gap
+  const extension = CUT_MARK_LENGTH_MM;
+
+  const columnEdges = new Set<number>();
+  const rowEdges = new Set<number>();
+
+  for (let col = 0; col < cols; col++) {
+    const baseX = col * (trimW + gap);
+    columnEdges.add(baseX);
+    columnEdges.add(baseX + trimW);
+  }
+
+  for (let row = 0; row < rows; row++) {
+    const baseY = row * (trimH + gap);
+    rowEdges.add(baseY);
+    rowEdges.add(baseY + trimH);
+  }
+
+  const sortedColumnEdges = Array.from(columnEdges).sort((a, b) => a - b);
+  const sortedRowEdges = Array.from(rowEdges).sort((a, b) => a - b);
+
   const gridW = cols * trimW + (cols - 1) * gap;
   const gridH = rows * trimH + (rows - 1) * gap;
-  
-  let ticksMarkup = '';
-  
-  // Generate cut marks for each card - positioned exactly at card boundaries
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const cardX = col * (trimW + gap);
-      const cardY = row * (trimH + gap);
-      
-      // Card boundaries
-      const left = cardX;
-      const right = cardX + trimW;
-      const top = cardY;
-      const bottom = cardY + trimH;
-      
-      const centerX = cardX + trimW / 2;
-      const centerY = cardY + trimH / 2;
-      
-      // Top edge mark - vertical line extending above the card
-      ticksMarkup += `<line class="cut-mark-tick" x1="${centerX}" y1="${top - markLen}" x2="${centerX}" y2="${top}" />\n`;
-      
-      // Bottom edge mark - vertical line extending below the card
-      ticksMarkup += `<line class="cut-mark-tick" x1="${centerX}" y1="${bottom}" x2="${centerX}" y2="${bottom + markLen}" />\n`;
-      
-      // Left edge mark - horizontal line extending left of the card
-      ticksMarkup += `<line class="cut-mark-tick" x1="${left - markLen}" y1="${centerY}" x2="${left}" y2="${centerY}" />\n`;
-      
-      // Right edge mark - horizontal line extending right of the card
-      ticksMarkup += `<line class="cut-mark-tick" x1="${right}" y1="${centerY}" x2="${right + markLen}" y2="${centerY}" />\n`;
-    }
+
+  const viewWidth = gridW + extension * 2;
+  const viewHeight = gridH + extension * 2;
+
+  const lines: string[] = [];
+
+  for (const x of sortedColumnEdges) {
+    lines.push(`<line class="cut-line" x1="${x}" y1="${-extension}" x2="${x}" y2="${gridH + extension}" />`);
   }
-  
+
+  for (const y of sortedRowEdges) {
+    lines.push(`<line class="cut-line" x1="${-extension}" y1="${y}" x2="${gridW + extension}" y2="${y}" />`);
+  }
+
   return `<div class="cut-marks-container">
-    <svg class="cut-marks-svg" width="${gridW + markLen * 2}mm" height="${gridH + markLen * 2}mm" viewBox="${-markLen} ${-markLen} ${gridW + markLen * 2} ${gridH + markLen * 2}" xmlns="http://www.w3.org/2000/svg">
-      ${ticksMarkup}
+    <svg class="cut-marks-svg" width="${viewWidth}mm" height="${viewHeight}mm" viewBox="${-extension} ${-extension} ${viewWidth} ${viewHeight}" xmlns="http://www.w3.org/2000/svg">
+      ${lines.join('\n      ')}
     </svg>
   </div>`;
 }

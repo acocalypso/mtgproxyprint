@@ -187,7 +187,7 @@
                 <label class="checkbox-container">
                   <input type="checkbox" v-model="form.cutMarks" class="checkbox" />
                   <span class="checkmark"></span>
-                  <span class="checkbox-label">Include cut marks for precise cutting</span>
+                  <span class="checkbox-label">Include cut marks for precise cutting (works in landscape only at the moment)</span>
                 </label>
               </div>
             </div>

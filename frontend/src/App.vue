@@ -155,6 +155,18 @@
                 class="decklist-input"
               ></textarea>
             </div>
+
+            <div class="decklist-actions">
+              <button 
+                type="button" 
+                @click="handlePreview" 
+                :disabled="status.loadingResolve"
+                class="btn btn-secondary decklist-preview-btn"
+              >
+                <span v-if="status.loadingResolve">Processing...</span>
+                <span v-else>👁️ Preview Cards</span>
+              </button>
+            </div>
           </div>
           
           <!-- Settings -->
@@ -201,17 +213,7 @@
             </div>
             
             <!-- Buttons -->
-            <div class="button-group">
-              <button 
-                type="button" 
-                @click="handlePreview" 
-                :disabled="status.loadingResolve"
-                class="btn btn-secondary"
-              >
-                <span v-if="status.loadingResolve">Processing...</span>
-                <span v-else>👁️ Preview Cards</span>
-              </button>
-              
+            <div class="button-group button-group--single">
               <button
                 type="button"
                 class="btn btn-primary"
@@ -1779,6 +1781,17 @@ function getFilteredPrintings(item: ResolvedItemWithMeta): any[] {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
+.decklist-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.decklist-preview-btn {
+  flex: 0 0 auto;
+  min-width: 200px;
+}
+
 /* Settings Section */
 .settings-section {
   background: #ffffff;
@@ -1913,6 +1926,15 @@ function getFilteredPrintings(item: ResolvedItemWithMeta): any[] {
   display: flex;
   gap: 0.75rem;
   margin-bottom: 1rem;
+}
+
+.button-group--single {
+  justify-content: flex-end;
+}
+
+.button-group--single .btn {
+  flex: 0 0 auto;
+  min-width: 200px;
 }
 
 .btn {
@@ -2228,6 +2250,22 @@ function getFilteredPrintings(item: ResolvedItemWithMeta): any[] {
   
   .button-group {
     flex-direction: column;
+  }
+
+  .button-group--single {
+    align-items: stretch;
+  }
+
+  .button-group--single .btn {
+    width: 100%;
+  }
+
+  .decklist-actions {
+    justify-content: stretch;
+  }
+
+  .decklist-preview-btn {
+    width: 100%;
   }
   
   .section-header {

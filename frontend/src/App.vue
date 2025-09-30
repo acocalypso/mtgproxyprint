@@ -21,13 +21,21 @@
             <span class="feature">📄 Print Ready</span>
           </div>
           
-          <div class="moxfield-info">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M12 22V12" stroke="currentColor" stroke-width="2"/>
-              <path d="M2 7L12 12L22 7" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            <span><strong>Moxfield Compatible:</strong> <a href="https://moxfield.com" target="_blank" rel="noopener">Moxfield.com</a> export format supported</span>
+          <div class="hero-badges">
+            <div class="hero-pill">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M12 22V12" stroke="currentColor" stroke-width="2"/>
+                <path d="M2 7L12 12L22 7" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              <span><strong>Moxfield Compatible:</strong> <a href="https://moxfield.com" target="_blank" rel="noopener">Moxfield.com</a> export format supported</span>
+            </div>
+            <div class="hero-pill">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M12 3C7.03 3 3 7.03 3 12C3 16.97 7.03 21 12 21C16.97 21 21 16.97 21 12C21 7.03 16.97 3 12 3ZM10.5 16.5L6 12L7.41 10.59L10.5 13.67L16.59 7.59L18 9L10.5 16.5Z" fill="currentColor"/>
+              </svg>
+              <span><strong>Powered by Scryfall:</strong> Card data and imagery provided by the <a href="https://scryfall.com/docs/api" target="_blank" rel="noopener">Scryfall API</a>.</span>
+            </div>
           </div>
         </div>
       </div>
@@ -364,6 +372,35 @@
         </article>
       </div>
       -->
+    </section>
+
+    <section class="community-section">
+      <div class="community-card">
+        <div class="community-copy">
+          <h2 class="community-title">Built with the community</h2>
+          <p class="community-description">
+            MTG Proxy Print is fully open source and growing fast. We're looking for contributors&mdash;if you care about better proxies, new print layouts, or other features, we would love your help shaping the next release.
+          </p>
+        </div>
+        <div class="community-actions">
+          <a
+            class="community-link community-link--primary"
+            href="https://github.com/acocalypso/mtgproxyprint"
+            target="_blank"
+            rel="noopener"
+          >
+            Visit the GitHub project
+          </a>
+          <a
+            class="community-link community-link--secondary"
+            href="https://github.com/acocalypso/mtgproxyprint/issues"
+            target="_blank"
+            rel="noopener"
+          >
+            Browse open issues
+          </a>
+        </div>
+      </div>
     </section>
   </div>
 </template>
@@ -1135,7 +1172,14 @@ function getFilteredPrintings(item: ResolvedItemWithMeta): any[] {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-.moxfield-info {
+.hero-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.hero-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -1149,13 +1193,13 @@ function getFilteredPrintings(item: ResolvedItemWithMeta): any[] {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-.moxfield-info a {
+.hero-pill a {
   color: #3b82f6;
   text-decoration: none;
   font-weight: 500;
 }
 
-.moxfield-info a:hover {
+.hero-pill a:hover {
   text-decoration: underline;
 }
 
@@ -1177,6 +1221,15 @@ function getFilteredPrintings(item: ResolvedItemWithMeta): any[] {
   .hero-features {
     flex-direction: column;
     align-items: center;
+  }
+
+  .hero-badges {
+    width: 100%;
+  }
+
+  .hero-pill {
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -1398,6 +1451,91 @@ function getFilteredPrintings(item: ResolvedItemWithMeta): any[] {
   align-items: start;
 }
 
+/* Community Section */
+.community-section {
+  background: #f9fafb;
+  padding: 3rem 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.community-card {
+  max-width: 1000px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(129, 140, 248, 0.1));
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 16px;
+  padding: 2.5rem 3rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.05);
+}
+
+.community-copy {
+  flex: 1;
+}
+
+.community-title {
+  font-size: 2rem;
+  margin: 0 0 0.75rem 0;
+  color: #111827;
+}
+
+.community-description {
+  margin: 0;
+  font-size: 1rem;
+  color: #374151;
+  max-width: 520px;
+}
+
+.community-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 240px;
+}
+
+.community-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.5rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.community-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px rgba(59, 130, 246, 0.15);
+}
+
+.community-link--primary {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+.community-link--primary:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.community-link--secondary {
+  background: rgba(255, 255, 255, 0.8);
+  color: #1f2937;
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.community-link--secondary:hover {
+  background: #ffffff;
+  border-color: rgba(37, 99, 235, 0.4);
+}
+
 @media (max-width: 1024px) {
   .content-grid {
     grid-template-columns: 1fr;
@@ -1542,14 +1680,28 @@ function getFilteredPrintings(item: ResolvedItemWithMeta): any[] {
   position: relative;
 }
 
+.input-group .form-input {
+  padding-right: 3.25rem;
+}
+
 .input-suffix {
   position: absolute;
-  right: 0.75rem;
+  right: 2.5rem;
   top: 50%;
   transform: translateY(-50%);
   color: #6b7280;
   font-size: 0.875rem;
   pointer-events: none;
+}
+
+.input-group input[type="number"]::-webkit-inner-spin-button,
+.input-group input[type="number"]::-webkit-outer-spin-button {
+  margin-left: 0.5rem;
+}
+
+.input-group input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
 }
 
 .checkbox-container {
@@ -1867,6 +2019,20 @@ function getFilteredPrintings(item: ResolvedItemWithMeta): any[] {
   
   .preview-stats {
     flex-wrap: wrap;
+  }
+
+  .community-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .community-actions {
+    width: 100%;
+  }
+
+  .community-link {
+    width: 100%;
   }
 }
 </style>

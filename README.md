@@ -235,6 +235,10 @@ The application features:
 - Real-time decklist validation
 - Professional PDF output with cut marks
 
+## 🤝 Contributing
+
+We build this project in the open at [github.com/acocalypso/mtgproxyprint](https://github.com/acocalypso/mtgproxyprint). It's fully open source, and we're actively looking for contributors who want to help improve card rendering, add new print workflows, or tackle outstanding issues. Check out the issue tracker or open a discussion to get started—we'd love to collaborate with you.
+
 ## 🙏 Acknowledgements
 
 - **[Scryfall](https://scryfall.com/)**: Comprehensive MTG card database and high-quality imagery

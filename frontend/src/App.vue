@@ -300,6 +300,14 @@
             </div>
 
             <div class="decklist-actions">
+              <button
+                type="button"
+                class="btn btn-secondary decklist-clear-btn"
+                :disabled="status.loadingResolve || !canClearDecklist"
+                @click="handleClearDecklist"
+              >
+                🧹 Clear Decklist
+              </button>
               <button 
                 type="button" 
                 :disabled="status.loadingResolve" 
@@ -940,6 +948,23 @@ const hasErrors = computed(() => resolvedItems.some((item) => Boolean(item.error
 const hasWarnings = computed(() => resolvedItems.some((item) => !item.error && item.warning));
 const canGeneratePdf = computed(() => (displayItems.value || []).some(item => item.image && item.line.qty > 0 && !item.error) && !status.loadingResolve);
 const hasDownloadableTiles = computed(() => previewTiles.value.some(tile => !tile.excluded));
+const canClearDecklist = computed(() => form.decklist.trim().length > 0 || resolvedItems.length > 0 || previewTiles.value.length > 0);
+
+function handleClearDecklist() {
+  form.decklist = '';
+  status.resolveError = null;
+  status.pdfError = null;
+  status.downloadError = null;
+  status.downloadingAll = false;
+
+  resolvedItems.splice(0, resolvedItems.length);
+  previewTiles.value = [];
+  excludedCards.clear();
+
+  Object.keys(downloadingTiles).forEach((key) => {
+    delete downloadingTiles[key];
+  });
+}
 
 async function handlePreview() {
   status.resolveError = null;
@@ -2027,9 +2052,16 @@ function getGermanPrintings(item: ResolvedItemWithMeta): any[] {
   margin-top: 1.5rem;
   display: flex;
   justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .decklist-preview-btn {
+  flex: 0 0 auto;
+  min-width: 200px;
+}
+
+.decklist-clear-btn {
   flex: 0 0 auto;
   min-width: 200px;
 }

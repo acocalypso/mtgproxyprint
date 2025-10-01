@@ -105,6 +105,15 @@ export function buildHtml(tiles: Tile[], options: LayoutOptions): string {
         page-break-after: avoid;
       }
 
+      .layout-wrapper {
+        position: relative;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: visible;
+      }
+
       .grid {
         display: grid;
         grid-template-columns: repeat(${paperConfig.cardsPerRow}, var(--card-width));
@@ -137,20 +146,19 @@ export function buildHtml(tiles: Tile[], options: LayoutOptions): string {
 
       .cut-marks-container {
         position: absolute;
-        top: 0;
-        left: 0;
+        inset: 0;
         width: 100%;
         height: 100%;
         pointer-events: none;
         z-index: 100;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         overflow: visible;
       }
 
       .cut-marks-svg {
         position: relative;
+        width: 100%;
+        height: 100%;
+        display: block;
       }
 
       .cut-line {
@@ -182,22 +190,42 @@ function expandTiles(tiles: Tile[]): Array<{ image: string; label?: string }> {
   return expanded;
 }
 
+interface GridDimensions {
+  width: number;
+  height: number;
+}
+
+function getGridDimensions(paperConfig: PaperConfig, gapMm: number): GridDimensions {
+  const cols = paperConfig.cardsPerRow;
+  const rows = paperConfig.cardsPerColumn;
+  const width = cols * CARD_WIDTH_MM + (cols - 1) * gapMm;
+  const height = rows * CARD_HEIGHT_MM + (rows - 1) * gapMm;
+  return { width, height };
+}
+
 function createPageMarkup(pageCards: Array<{ image: string; label?: string }>, pageIndex: number, cutMarks: boolean, paperConfig: PaperConfig, gapMm: number): string {
   const tilesMarkup = pageCards
-  .map((tile, index) => createTileMarkup(tile, pageIndex * paperConfig.maxCardsPerPage + index))
+    .map((tile, index) => createTileMarkup(tile, pageIndex * paperConfig.maxCardsPerPage + index))
     .join('\n');
 
-  const cutMarksMarkup = cutMarks ? createCutMarksOverlay(paperConfig, gapMm) : '';
+  const gridDimensions = getGridDimensions(paperConfig, gapMm);
+  const wrapperWidth = gridDimensions.width + CUT_MARK_LENGTH_MM * 2;
+  const wrapperHeight = gridDimensions.height + CUT_MARK_LENGTH_MM * 2;
+  const wrapperStyle = `width: ${wrapperWidth}mm; height: ${wrapperHeight}mm; padding: ${CUT_MARK_LENGTH_MM}mm;`;
+
+  const cutMarksMarkup = cutMarks ? createCutMarksOverlay(paperConfig, gapMm, gridDimensions) : '';
 
   return `<div class="page">
-    <div class="grid">
-      ${tilesMarkup}
+    <div class="layout-wrapper" style="${wrapperStyle}">
+      <div class="grid">
+        ${tilesMarkup}
+      </div>
+      ${cutMarksMarkup}
     </div>
-    ${cutMarksMarkup}
   </div>`;
 }
 
-function createCutMarksOverlay(paperConfig: PaperConfig, gapMm: number): string {
+function createCutMarksOverlay(paperConfig: PaperConfig, gapMm: number, dimensions: GridDimensions): string {
   const rows = paperConfig.cardsPerColumn;
   const cols = paperConfig.cardsPerRow;
   const trimW = CARD_WIDTH_MM;
@@ -223,24 +251,27 @@ function createCutMarksOverlay(paperConfig: PaperConfig, gapMm: number): string 
   const sortedColumnEdges = Array.from(columnEdges).sort((a, b) => a - b);
   const sortedRowEdges = Array.from(rowEdges).sort((a, b) => a - b);
 
-  const gridW = cols * trimW + (cols - 1) * gap;
-  const gridH = rows * trimH + (rows - 1) * gap;
-
-  const viewWidth = gridW + extension * 2;
-  const viewHeight = gridH + extension * 2;
+  const gridW = dimensions.width;
+  const gridH = dimensions.height;
+  const overlayWidth = gridW + extension * 2;
+  const overlayHeight = gridH + extension * 2;
+  const offsetX = extension;
+  const offsetY = extension;
 
   const lines: string[] = [];
 
   for (const x of sortedColumnEdges) {
-    lines.push(`<line class="cut-line" x1="${x}" y1="${-extension}" x2="${x}" y2="${gridH + extension}" />`);
+    const positionX = offsetX + x;
+    lines.push(`<line class="cut-line" x1="${positionX}" y1="0" x2="${positionX}" y2="${overlayHeight}" />`);
   }
 
   for (const y of sortedRowEdges) {
-    lines.push(`<line class="cut-line" x1="${-extension}" y1="${y}" x2="${gridW + extension}" y2="${y}" />`);
+    const positionY = offsetY + y;
+    lines.push(`<line class="cut-line" x1="0" y1="${positionY}" x2="${overlayWidth}" y2="${positionY}" />`);
   }
 
   return `<div class="cut-marks-container">
-    <svg class="cut-marks-svg" width="${viewWidth}mm" height="${viewHeight}mm" viewBox="${-extension} ${-extension} ${viewWidth} ${viewHeight}" xmlns="http://www.w3.org/2000/svg">
+    <svg class="cut-marks-svg" width="100%" height="100%" viewBox="0 0 ${overlayWidth} ${overlayHeight}" xmlns="http://www.w3.org/2000/svg">
       ${lines.join('\n      ')}
     </svg>
   </div>`;

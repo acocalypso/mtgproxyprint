@@ -369,7 +369,7 @@
                     class="checkbox"
                   >
                   <span class="checkmark" />
-                  <span class="checkbox-label">Include cut marks for precise cutting (works in landscape only at the moment)</span>
+                  <span class="checkbox-label">Include cut marks for precise cutting.</span>
                 </label>
               </div>
             </div>

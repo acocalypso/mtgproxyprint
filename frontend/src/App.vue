@@ -438,9 +438,11 @@
               <span class="stat-label">card<span v-if="!isSingleTile">s</span></span>
             </div>
             
-            <div
+            <button
               v-if="hasErrors"
-              class="stat-pill stat-pill--error"
+              type="button"
+              class="stat-pill stat-pill--error stat-pill--interactive"
+              @click="openIssuesModal"
             >
               <svg
                 width="16"
@@ -462,11 +464,13 @@
                 />
               </svg>
               <span>Issues found</span>
-            </div>
+            </button>
             
-            <div
+            <button
               v-else-if="hasWarnings"
-              class="stat-pill stat-pill--warning"
+              type="button"
+              class="stat-pill stat-pill--warning stat-pill--interactive"
+              @click="openIssuesModal"
             >
               <svg
                 width="16"
@@ -497,7 +501,7 @@
                 />
               </svg>
               <span>Warnings</span>
-            </div>
+            </button>
             
             <div
               v-else
@@ -685,6 +689,113 @@
       </div>
       -->
     </section>
+
+    <div
+      v-if="issuesModal.open"
+      class="issues-modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="issues-modal-title"
+      @click.self="closeIssuesModal"
+      @keydown.esc.window="closeIssuesModal"
+    >
+      <div class="issues-modal">
+        <header class="issues-modal__header">
+          <div>
+            <h3
+              id="issues-modal-title"
+              class="issues-modal__title"
+            >
+              Deck validation details
+            </h3>
+            <p class="issues-modal__subtitle">
+              Review errors and warnings to fix problem cards before printing.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="issues-modal__close"
+            aria-label="Close issue details"
+            @click="closeIssuesModal"
+          >
+            ✕
+          </button>
+        </header>
+
+        <div class="issues-modal__body">
+          <div
+            v-if="issueSummary.errors.length"
+            class="issue-group"
+          >
+            <h4 class="issue-group__title issue-group__title--error">
+              Errors
+            </h4>
+            <p class="issue-group__caption">
+              These cards couldn't be processed and require fixes before they will print.
+            </p>
+            <ul class="issue-list">
+              <li
+                v-for="item in issueSummary.errors"
+                :key="`error-${item.id}`"
+                class="issue-entry issue-entry--error"
+              >
+                <div class="issue-entry__header">
+                  <span class="issue-entry__name">{{ item.card?.name ?? item.line.name }}</span>
+                  <span
+                    v-if="item.line.set || item.line.collector"
+                    class="issue-entry__meta"
+                  >
+                    <template v-if="item.line.set">{{ item.line.set }}</template>
+                    <template v-if="item.line.set && item.line.collector"> · </template>
+                    <template v-if="item.line.collector">#{{ item.line.collector }}</template>
+                  </span>
+                </div>
+                <p class="issue-entry__message">{{ item.error }}</p>
+              </li>
+            </ul>
+          </div>
+
+          <div
+            v-if="issueSummary.warnings.length"
+            class="issue-group"
+          >
+            <h4 class="issue-group__title issue-group__title--warning">
+              Warnings
+            </h4>
+            <p class="issue-group__caption">
+              We resolved these cards, but something may not look right.
+            </p>
+            <ul class="issue-list">
+              <li
+                v-for="item in issueSummary.warnings"
+                :key="`warning-${item.id}`"
+                class="issue-entry issue-entry--warning"
+              >
+                <div class="issue-entry__header">
+                  <span class="issue-entry__name">{{ item.card?.name ?? item.line.name }}</span>
+                  <span
+                    v-if="item.line.set || item.line.collector"
+                    class="issue-entry__meta"
+                  >
+                    <template v-if="item.line.set">{{ item.line.set }}</template>
+                    <template v-if="item.line.set && item.line.collector"> · </template>
+                    <template v-if="item.line.collector">#{{ item.line.collector }}</template>
+                  </span>
+                </div>
+                <p class="issue-entry__message">{{ item.warning }}</p>
+              </li>
+            </ul>
+          </div>
+
+          <div
+            v-if="!issueSummary.errors.length && !issueSummary.warnings.length"
+            class="issue-empty"
+          >
+            <p>No issues to show.</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <section class="community-section">
       <div class="community-card">
@@ -950,6 +1061,34 @@ const canGeneratePdf = computed(() => (displayItems.value || []).some(item => it
 const hasDownloadableTiles = computed(() => previewTiles.value.some(tile => !tile.excluded));
 const canClearDecklist = computed(() => form.decklist.trim().length > 0 || resolvedItems.length > 0 || previewTiles.value.length > 0);
 
+const issuesModal = reactive({ open: false });
+
+const issueSummary = computed(() => {
+  const errors: ResolvedItemWithMeta[] = [];
+  const warnings: ResolvedItemWithMeta[] = [];
+
+  resolvedItems.forEach(item => {
+    if (item.error) {
+      errors.push(item);
+    } else if (!item.error && item.warning) {
+      warnings.push(item);
+    }
+  });
+
+  return { errors, warnings };
+});
+
+function openIssuesModal() {
+  if (!hasErrors.value && !hasWarnings.value) {
+    return;
+  }
+  issuesModal.open = true;
+}
+
+function closeIssuesModal() {
+  issuesModal.open = false;
+}
+
 function handleClearDecklist() {
   form.decklist = '';
   status.resolveError = null;
@@ -964,6 +1103,8 @@ function handleClearDecklist() {
   Object.keys(downloadingTiles).forEach((key) => {
     delete downloadingTiles[key];
   });
+
+  closeIssuesModal();
 }
 
 async function handlePreview() {
@@ -2325,6 +2466,21 @@ function getGermanPrintings(item: ResolvedItemWithMeta): any[] {
   border: 1px solid #e5e7eb;
 }
 
+.stat-pill--interactive {
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.stat-pill--interactive:hover {
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+  transform: translateY(-1px);
+}
+
+.stat-pill--interactive:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
 .stat-pill--success {
   background: #f0fdf4;
   color: #166534;
@@ -2345,6 +2501,160 @@ function getGermanPrintings(item: ResolvedItemWithMeta): any[] {
 
 .stat-number {
   font-weight: 700;
+}
+
+.issues-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  z-index: 2000;
+}
+
+.issues-modal {
+  background: #ffffff;
+  width: min(640px, 100%);
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.45);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.issues-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.issues-modal__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.issues-modal__subtitle {
+  margin: 0.35rem 0 0 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.issues-modal__close {
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  font-size: 1.25rem;
+  cursor: pointer;
+  line-height: 1;
+  border-radius: 999px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.issues-modal__close:hover {
+  color: #111827;
+  background: rgba(17, 24, 39, 0.08);
+}
+
+.issues-modal__close:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.issues-modal__body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.issue-group {
+  margin-bottom: 1.75rem;
+}
+
+.issue-group:last-child {
+  margin-bottom: 0;
+}
+
+.issue-group__title {
+  margin: 0 0 0.35rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.issue-group__title--error {
+  color: #b91c1c;
+}
+
+.issue-group__title--warning {
+  color: #b45309;
+}
+
+.issue-group__caption {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.issue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.issue-entry {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  padding: 1rem;
+}
+
+.issue-entry--error {
+  border-left: 4px solid #ef4444;
+}
+
+.issue-entry--warning {
+  border-left: 4px solid #f59e0b;
+}
+
+.issue-entry__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.issue-entry__name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.issue-entry__meta {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.issue-entry__message {
+  margin: 0.5rem 0 0 0;
+  color: #374151;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.issue-empty {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.9rem;
 }
 
 /* Preview Grid */

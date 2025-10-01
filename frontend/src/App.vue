@@ -937,6 +937,9 @@ const stats = reactive({
   error: null as string | null
 });
 
+const VISIT_STORAGE_KEY = 'mtgproxyprint:lastVisit';
+const VISIT_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 const search = reactive({
   query: '',
   results: [] as SearchResult[],
@@ -1160,6 +1163,15 @@ async function recordVisitOnce(): Promise<void> {
   stats.loading = true;
   stats.error = null;
   try {
+    const now = Date.now();
+    const lastVisit = readStoredVisitTimestamp();
+    const recentlyCounted = typeof lastVisit === 'number' && now - lastVisit < VISIT_COOLDOWN_MS;
+
+    if (recentlyCounted) {
+      await fetchStatsSnapshot(true);
+      return;
+    }
+
     const response = await fetch('/api/stats/visit', {
       method: 'POST'
     });
@@ -1169,11 +1181,42 @@ async function recordVisitOnce(): Promise<void> {
     }
     const data = (await response.json()) as UsageStats;
     updateStatsFromPayload(data);
+    persistVisitTimestamp(now);
   } catch (error) {
     stats.error = error instanceof Error ? error.message : 'Failed to update usage stats.';
     await fetchStatsSnapshot(true);
   } finally {
     stats.loading = false;
+  }
+}
+
+function readStoredVisitTimestamp(): number | null {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(VISIT_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : null;
+  } catch (error) {
+    console.warn('Failed to read visit timestamp from storage', error);
+    return null;
+  }
+}
+
+function persistVisitTimestamp(timestamp: number): void {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(VISIT_STORAGE_KEY, String(timestamp));
+  } catch (error) {
+    console.warn('Failed to persist visit timestamp', error);
   }
 }
 

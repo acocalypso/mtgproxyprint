@@ -91,6 +91,8 @@ The application consists of two main services:
 ### Server
 - `NODE_ENV`: Set to 'production' or 'development'
 - `PORT`: Server port (default: 3000)
+- `SCRYFALL_DATA_DIR`: Location for cached Scryfall bulk data (default: `data/scryfall` inside the container). The server now downloads Scryfall's **all-cards** bulk dataset so every language is available on startup; expect the first download to take longer than before.
+- `SCRYFALL_REFRESH_INTERVAL_MS`: Optional override for how often the server revalidates and refreshes the bulk cache (default: once per day).
 
 ### Frontend (Development)
 - `VITE_API_URL`: Backend API URL for development (default: http://localhost:3000)
@@ -102,9 +104,10 @@ Source code directories are mounted as read-only volumes:
 - `./server/src` → `/app/server/src`
 - `./frontend/src` → `/app/frontend/src`
 - Configuration files are also mounted for live updates
+- Named volume `scryfall-cache` is mounted at `/app/server/data` to persist the Scryfall bulk cache across restarts.
 
 ### Production
-No volumes are mounted in production for security and performance.
+The `scryfall-cache` named volume is mounted at `/app/data` to persist the Scryfall bulk cache between deployments while keeping application layers immutable.
 
 ## Health Checks
 

@@ -9,12 +9,14 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
+      - SCRYFALL_DATA_DIR=/app/server/data/scryfall
     volumes:
       - ./server/src:/app/server/src:ro
       - ./server/package.json:/app/server/package.json:ro
       - ./server/tsconfig.json:/app/server/tsconfig.json:ro
       - ./server/tsconfig.build.json:/app/server/tsconfig.build.json:ro
       - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+      - scryfall-cache:/app/server/data
     restart: unless-stopped
 
   frontend:
@@ -41,3 +43,6 @@ services:
 networks:
   default:
     name: mtg-proxy-print-dev
+
+volumes:
+  scryfall-cache:

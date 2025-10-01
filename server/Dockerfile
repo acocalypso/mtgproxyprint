@@ -10,6 +10,7 @@ RUN apk add --no-cache \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
+    su-exec \
     && rm -rf /var/cache/apk/*
 
 # Copy package files
@@ -32,6 +33,7 @@ RUN apk add --no-cache \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
+    su-exec \
     && rm -rf /var/cache/apk/*
 
 # Copy package files
@@ -83,13 +85,15 @@ COPY --from=builder /app/package.json ./package.json
 # Copy production node_modules
 COPY --from=deps /app/node_modules ./node_modules
 
+COPY server/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Change ownership of the app directory
 RUN chown -R expressjs:nodejs /app
-
-USER expressjs
 
 EXPOSE 3000
 
 ENV PORT=3000
 
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "dist/index.js"]

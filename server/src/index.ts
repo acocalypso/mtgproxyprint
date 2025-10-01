@@ -1,9 +1,22 @@
 import { createServer } from './app';
+import { getScryfallService } from './services/scryfallService';
 
-const app = createServer();
+async function start() {
+  const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
-const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+  try {
+    await getScryfallService();
+    console.log('[server] Scryfall cache ready');
+  } catch (error) {
+    console.error('[server] Failed to initialize Scryfall cache', error);
+    process.exit(1);
+  }
 
-app.listen(port, () => {
-  console.log(`[server] listening on http://localhost:${port}`);
-});
+  const app = createServer();
+
+  app.listen(port, () => {
+    console.log(`[server] listening on http://localhost:${port}`);
+  });
+}
+
+void start();

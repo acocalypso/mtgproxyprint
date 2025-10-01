@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "express": "5.1.0",
-    "puppeteer": "^24.10.2"
+    "p-limit": "^5.0.0",
+    "puppeteer": "^24.10.2",
+    "stream-json": "^1.7.5"
   },
   "devDependencies": {
     "@types/express": "5.0.3",

@@ -52,11 +52,15 @@
                   stroke-width="2"
                 />
               </svg>
-              <span><strong>Moxfield Compatible:</strong> <a
+              <span><strong>Deckbuilder Friendly:</strong> Supports <a
                 href="https://moxfield.com"
                 target="_blank"
                 rel="noopener"
-              >Moxfield.com</a> export format supported</span>
+              >Moxfield.com</a> exports and <a
+                href="https://archidekt.com"
+                target="_blank"
+                rel="noopener"
+              >Archidekt</a> “Export Deck → Text” output.</span>
             </div>
             <div class="hero-pill">
               <svg
@@ -271,6 +275,7 @@
               <h3>Decklist Format</h3>
               <div class="format-tags">
                 <span class="tag tag-primary">Moxfield</span>
+                <span class="tag">Archidekt Export Deck → Text</span>
                 <span class="tag">MTG Arena</span>
                 <span class="tag">Standard</span>
               </div>
@@ -282,6 +287,7 @@
                 class="input-label"
               >
                 One card per line. Example: <code>3 Lightning Bolt (2XM) 123</code>
+                <span class="input-subtext">Also supports Archidekt “Export Deck → Text” decklists.</span>
               </label>
               <textarea
                 id="decklist"
@@ -1988,6 +1994,13 @@ function getGermanPrintings(item: ResolvedItemWithMeta): any[] {
   font-family: 'SF Mono', monospace;
   font-size: 0.8em;
   color: #374151;
+}
+
+.input-label .input-subtext {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: #9ca3af;
 }
 
 .decklist-input {

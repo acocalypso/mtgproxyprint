@@ -41,4 +41,30 @@ describe('parseDecklist', () => {
     expect(result[1].parseError).toBeDefined();
     expect(result[1].name).toBe('bad line');
   });
+
+  it('strips Archidekt annotations while parsing set and collector', () => {
+    const input = '1x Adarkar Valkyrie (c14) 63 [Maybeboard{noDeck}{noPrice},Recursion]';
+    const result = parseDecklist(input);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      qty: 1,
+      name: 'Adarkar Valkyrie',
+      set: 'c14',
+      collector: '63'
+    });
+  });
+
+  it('ignores caret-delimited notes such as Archidekt proxy annotations', () => {
+    const input = '1x Adarkar Wastes (m3c) 316 [Land] ^Proxy MPC,#0d97fa^';
+    const result = parseDecklist(input);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      qty: 1,
+      name: 'Adarkar Wastes',
+      set: 'm3c',
+      collector: '316'
+    });
+  });
 });

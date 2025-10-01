@@ -11,6 +11,9 @@ COPY tsconfig.base.json ./
 # Install dependencies
 RUN npm ci
 
+# Install helper utilities
+RUN apk add --no-cache su-exec
+
 # Copy TypeScript configuration
 COPY server/tsconfig*.json ./server/
 
@@ -18,7 +21,8 @@ COPY server/tsconfig*.json ./server/
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 expressjs
 
-USER expressjs
+COPY server/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3000
 
@@ -26,4 +30,5 @@ ENV PORT=3000
 
 WORKDIR /app/server
 
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["npm", "run", "dev"]

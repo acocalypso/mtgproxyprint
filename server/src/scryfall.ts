@@ -24,10 +24,14 @@ export interface ScryfallCardFace {
 export interface ScryfallCard {
   id: string;
   name: string;
+  printed_name?: string;
   lang: string;
   set: string;
   collector_number: string;
   layout?: string;
+  oracle_id?: string;
+  released_at?: string;
+  games?: string[];
   image_status?: string;
   highres_image?: boolean;
   image_uris?: ScryfallImageUris;

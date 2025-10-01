@@ -14,6 +14,7 @@ A modern, professional web application for generating high-quality print-ready P
 ### 🃏 Card Resolution & Processing
 - **Flexible Input**: Paste MTG decklists using set/collector numbers or name-only entries
 - **Smart Resolution**: Batch resolve via Scryfall API with intelligent fallback systems
+- **All-Language Cache**: Preloads Scryfall's all-cards bulk dataset so every printing is available without first-request latency
 - **Multi-language Support**: Language-aware card resolution with automatic detection
 - **Double-faced Cards**: Automatic detection and proper handling of transform cards
 - **High-quality Images**: Prefer PNG artwork when available for crisp printing

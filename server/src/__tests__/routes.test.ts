@@ -1,22 +1,19 @@
 import request from 'supertest';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createServer } from '../app';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const originalFetch = globalThis.fetch;
-
-const collectionCard = {
-  id: 'card-1',
-  name: 'Lightning Bolt',
-  lang: 'en',
-  set: 'lea',
-  collector_number: '150',
-  layout: 'normal',
-  image_status: 'highres_scan',
-  highres_image: true,
-  image_uris: {
-    png: 'https://img.scryfall.io/card.png'
-  }
+const mockService = {
+  findByCollector: vi.fn(),
+  findByName: vi.fn(),
+  getPrintings: vi.fn(),
+  toResolvedCard: vi.fn()
 };
+
+const getScryfallServiceMock = vi.fn(async () => mockService);
+
+vi.mock('../services/scryfallService', () => ({
+  getScryfallService: getScryfallServiceMock,
+  ScryfallService: class {}
+}));
 
 vi.mock('puppeteer', () => {
   const buffer = Buffer.from('%PDF-1.4');
@@ -33,29 +30,70 @@ vi.mock('puppeteer', () => {
   };
 });
 
+beforeEach(() => {
+  getScryfallServiceMock.mockClear();
+  mockService.findByCollector.mockReset();
+  mockService.findByName.mockReset();
+  mockService.getPrintings.mockReset();
+  mockService.toResolvedCard.mockReset();
+});
+
 afterEach(() => {
   vi.clearAllMocks();
-  if (originalFetch) {
-    globalThis.fetch = originalFetch;
-  }
 });
 
 describe('POST /api/resolve', () => {
   it('resolves cards using batch collection endpoint with fallback', async () => {
-  const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
-      const url = typeof input === 'string' ? input : input.toString();
-      if (url.includes('/cards/collection')) {
-        return new Response(JSON.stringify({ data: [collectionCard] }), { status: 200 });
+    const lightning = {
+      id: 'card-1',
+      name: 'Lightning Bolt',
+      lang: 'en',
+      set: 'lea',
+      collector_number: '150',
+      layout: 'normal',
+      image_status: 'highres_scan',
+      highres_image: true,
+      image_uris: {
+        png: 'https://img.scryfall.io/card.png'
       }
-      if (url.includes('/cards/named')) {
-        const namedCard = { ...collectionCard, id: 'card-named', name: 'Brainstorm', collector_number: '123', image_uris: { large: 'https://img.named' } };
-        return new Response(JSON.stringify(namedCard), { status: 200 });
+    };
+
+    const brainstorm = {
+      id: 'card-2',
+      name: 'Brainstorm',
+      lang: 'en',
+      set: 'ice',
+      collector_number: '123',
+      layout: 'normal',
+      image_status: 'highres_scan',
+      highres_image: false,
+      image_uris: {
+        png: 'https://img.scryfall.io/brainstorm.png'
       }
-      throw new Error(`Unexpected fetch call to ${url}`);
+    };
+
+    mockService.findByCollector.mockResolvedValueOnce(lightning);
+    mockService.findByName.mockImplementation(async (name: string) => {
+      if (name === 'Brainstorm') {
+        return brainstorm as any;
+      }
+      return null;
     });
+    mockService.getPrintings.mockImplementation((card: any) => [card]);
+    mockService.toResolvedCard.mockImplementation((card: any) => ({
+      card: {
+        id: card.id,
+        name: card.name,
+        lang: card.lang,
+        set: card.set,
+        collector_number: card.collector_number,
+        layout: card.layout
+      },
+      image: card.image_uris?.png,
+      highRes: Boolean(card.highres_image || card.image_status === 'highres_scan')
+    }));
 
-    globalThis.fetch = fetchMock as typeof fetch;
-
+    const { createServer } = await import('../app');
     const app = createServer({ enableStatic: false });
     const response = await request(app)
       .post('/api/resolve')
@@ -66,11 +104,12 @@ describe('POST /api/resolve', () => {
     expect(response.body.items[0].card.name).toBe('Lightning Bolt');
     expect(response.body.items[0].image).toBe('https://img.scryfall.io/card.png');
     expect(response.body.items[1].card.name).toBe('Brainstorm');
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/cards/collection'), expect.objectContaining({ method: 'POST' }));
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/cards/named'), expect.objectContaining({ method: 'GET' }));
+    expect(mockService.findByCollector).toHaveBeenCalled();
+    expect(mockService.findByName).toHaveBeenCalled();
   });
 
   it('returns 400 when decklist missing', async () => {
+    const { createServer } = await import('../app');
     const app = createServer({ enableStatic: false });
     await request(app).post('/api/resolve').send({ decklist: ' ' }).expect(400);
   });
@@ -78,6 +117,7 @@ describe('POST /api/resolve', () => {
 
 describe('POST /api/pdf', () => {
   it('returns a PDF buffer when tiles are provided', async () => {
+    const { createServer } = await import('../app');
     const app = createServer({ enableStatic: false });
     const response = await request(app)
       .post('/api/pdf')
@@ -96,6 +136,7 @@ describe('POST /api/pdf', () => {
   });
 
   it('validates request payload', async () => {
+    const { createServer } = await import('../app');
     const app = createServer({ enableStatic: false });
     await request(app)
       .post('/api/pdf')

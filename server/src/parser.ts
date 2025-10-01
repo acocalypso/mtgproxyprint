@@ -25,7 +25,9 @@ export function parseDecklist(input: string): ParsedLine[] {
       continue;
     }
 
-    const primaryMatch = PRIMARY_PATTERN.exec(trimmed);
+    const sanitized = sanitizeDecklistLine(trimmed);
+
+    const primaryMatch = PRIMARY_PATTERN.exec(sanitized);
     if (primaryMatch) {
       const qty = Number(primaryMatch[1]);
       const name = primaryMatch[2].trim();
@@ -46,7 +48,7 @@ export function parseDecklist(input: string): ParsedLine[] {
       }
     }
 
-    const fallbackMatch = FALLBACK_PATTERN.exec(trimmed);
+    const fallbackMatch = FALLBACK_PATTERN.exec(sanitized);
     if (fallbackMatch) {
       const qty = Number(fallbackMatch[1]);
       const name = fallbackMatch[2].trim();
@@ -70,4 +72,19 @@ export function parseDecklist(input: string): ParsedLine[] {
   }
 
   return parsed;
+}
+
+function sanitizeDecklistLine(line: string): string {
+  let working = line;
+
+  // Remove Archidekt-style tags in square brackets (may include braces/commas inside)
+  working = working.replace(/\s*\[[^\]]*\]/g, '');
+
+  // Remove caret-delimited annotations such as ^Proxy MPC,#0d97fa^
+  working = working.replace(/\s*\^[^^]*\^/g, '');
+
+  // Collapse multiple spaces created by removals
+  working = working.replace(/\s{2,}/g, ' ');
+
+  return working.trim();
 }

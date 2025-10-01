@@ -9,6 +9,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - SCRYFALL_DATA_DIR=/app/data/scryfall
+    volumes:
+      - scryfall-cache:/app/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/healthz"]
@@ -34,3 +37,6 @@ services:
 networks:
   default:
     name: mtg-proxy-print
+
+volumes:
+  scryfall-cache:

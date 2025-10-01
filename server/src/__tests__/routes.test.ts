@@ -10,9 +10,22 @@ const mockService = {
 
 const getScryfallServiceMock = vi.fn(async () => mockService);
 
+const mockStats = {
+  recordPdfGenerated: vi.fn(async () => ({ pdfGenerated: 1, visits: 1 })),
+  recordVisit: vi.fn(async () => ({ pdfGenerated: 0, visits: 1 })),
+  fetchStats: vi.fn(async () => ({ pdfGenerated: 0, visits: 0 }))
+};
+
 vi.mock('../services/scryfallService', () => ({
   getScryfallService: getScryfallServiceMock,
   ScryfallService: class {}
+}));
+
+vi.mock('../services/statsService', () => ({
+  recordPdfGenerated: mockStats.recordPdfGenerated,
+  recordVisit: mockStats.recordVisit,
+  fetchStats: mockStats.fetchStats,
+  __resetStatsServiceForTests: vi.fn()
 }));
 
 vi.mock('puppeteer', () => {
@@ -36,6 +49,9 @@ beforeEach(() => {
   mockService.findByName.mockReset();
   mockService.getPrintings.mockReset();
   mockService.toResolvedCard.mockReset();
+  mockStats.recordPdfGenerated.mockReset();
+  mockStats.recordVisit.mockReset();
+  mockStats.fetchStats.mockReset();
 });
 
 afterEach(() => {
@@ -181,6 +197,7 @@ describe('POST /api/pdf', () => {
 
     expect(response.header['content-type']).toBe('application/pdf');
     expect(response.body.length).toBeGreaterThan(0);
+    expect(mockStats.recordPdfGenerated).toHaveBeenCalledTimes(1);
   });
 
   it('validates request payload', async () => {
@@ -190,5 +207,27 @@ describe('POST /api/pdf', () => {
       .post('/api/pdf')
       .send({ tiles: [] })
       .expect(400);
+  });
+});
+
+describe('Stats API', () => {
+  it('records visits and returns updated stats', async () => {
+    mockStats.recordVisit.mockResolvedValueOnce({ pdfGenerated: 12, visits: 42 });
+    const { createServer } = await import('../app');
+    const app = createServer({ enableStatic: false });
+    const response = await request(app).post('/api/stats/visit').send().expect(200);
+
+    expect(response.body).toEqual({ pdfGenerated: 12, visits: 42 });
+    expect(mockStats.recordVisit).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns stats snapshot', async () => {
+    mockStats.fetchStats.mockResolvedValueOnce({ pdfGenerated: 7, visits: 21 });
+    const { createServer } = await import('../app');
+    const app = createServer({ enableStatic: false });
+    const response = await request(app).get('/api/stats').expect(200);
+
+    expect(response.body).toEqual({ pdfGenerated: 7, visits: 21 });
+    expect(mockStats.fetchStats).toHaveBeenCalledTimes(1);
   });
 });

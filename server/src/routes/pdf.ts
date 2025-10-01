@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import puppeteer, { type Browser, type Page } from 'puppeteer';
 import { buildHtml, type Tile, type LayoutOptions } from '../layout';
+import { recordPdfGenerated } from '../services/statsService';
 
 interface PdfRequestBody {
   tiles?: Array<{ image?: string; qty?: number; label?: string }>;
@@ -60,6 +61,10 @@ router.post('/pdf', async (req: Request, res: Response) => {
     }
     
     const buffer = await page.pdf(pdfOptions);
+
+    recordPdfGenerated().catch((error) => {
+      console.warn('[stats] failed to record PDF generation', error);
+    });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Length', buffer.length.toString());

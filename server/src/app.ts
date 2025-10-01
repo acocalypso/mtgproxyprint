@@ -4,6 +4,7 @@ import express, { type Request, type Response } from 'express';
 import resolveRoute from './routes/resolve';
 import pdfRoute from './routes/pdf';
 import searchRoute from './routes/search';
+import statsRoute from './routes/stats';
 
 export interface CreateServerOptions {
   enableStatic?: boolean;
@@ -18,6 +19,7 @@ export function createServer(options: CreateServerOptions = {}) {
   app.use('/api', resolveRoute);
   app.use('/api', pdfRoute);
   app.use('/api', searchRoute);
+  app.use('/api', statsRoute);
 
   let staticDir: string | null = null;
   if (enableStatic) {

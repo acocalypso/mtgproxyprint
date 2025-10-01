@@ -81,6 +81,28 @@
               >Scryfall API</a>.</span>
             </div>
           </div>
+
+          <div
+            v-if="!stats.error"
+            class="hero-stats"
+            role="status"
+            aria-live="polite"
+          >
+            <div class="hero-stat">
+              <span class="hero-stat-number">{{ formattedStats.pdfGenerated }}</span>
+              <span class="hero-stat-label">PDFs Generated</span>
+            </div>
+            <div class="hero-stat">
+              <span class="hero-stat-number">{{ formattedStats.visits }}</span>
+              <span class="hero-stat-label">Visits</span>
+            </div>
+          </div>
+          <div
+            v-else
+            class="hero-stats-error"
+          >
+            Usage stats temporarily unavailable.
+          </div>
         </div>
       </div>
     </header>
@@ -831,7 +853,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watchEffect } from 'vue';
+import { computed, onMounted, reactive, ref, watchEffect } from 'vue';
 import JSZip from 'jszip';
 
 interface ResolveLine {
@@ -885,6 +907,11 @@ interface SearchResponse {
   results: SearchResult[];
 }
 
+interface UsageStats {
+  pdfGenerated: number;
+  visits: number;
+}
+
 type PaperSize = 'A4' | 'A3' | 'A5' | 'Letter' | 'Legal' | 'Tabloid' | 'A4-4x2' | 'Letter-4x2';
 
 const form = reactive({
@@ -901,6 +928,13 @@ const status = reactive({
   pdfError: null as string | null,
   downloadingAll: false,
   downloadError: null as string | null
+});
+
+const stats = reactive({
+  pdfGenerated: 0,
+  visits: 0,
+  loading: false,
+  error: null as string | null
 });
 
 const search = reactive({
@@ -993,6 +1027,12 @@ watchEffect(() => {
   previewTiles.value = tiles;
 });
 
+onMounted(() => {
+  recordVisitOnce().catch((error) => {
+    console.warn('Failed to record visit stats', error);
+  });
+});
+
 function getPreviewTiles(): PreviewTile[] {
   return previewTiles.value;
 }
@@ -1061,6 +1101,11 @@ const canGeneratePdf = computed(() => (displayItems.value || []).some(item => it
 const hasDownloadableTiles = computed(() => previewTiles.value.some(tile => !tile.excluded));
 const canClearDecklist = computed(() => form.decklist.trim().length > 0 || resolvedItems.length > 0 || previewTiles.value.length > 0);
 
+const formattedStats = computed(() => ({
+  pdfGenerated: stats.pdfGenerated.toLocaleString(),
+  visits: stats.visits.toLocaleString()
+}));
+
 const issuesModal = reactive({ open: false });
 
 const issueSummary = computed(() => {
@@ -1077,6 +1122,60 @@ const issueSummary = computed(() => {
 
   return { errors, warnings };
 });
+
+function updateStatsFromPayload(payload: Partial<UsageStats> | null | undefined): void {
+  if (!payload || typeof payload !== 'object') {
+    return;
+  }
+
+  if (typeof payload.pdfGenerated === 'number' && Number.isFinite(payload.pdfGenerated)) {
+    stats.pdfGenerated = Math.max(0, Math.floor(payload.pdfGenerated));
+  }
+
+  if (typeof payload.visits === 'number' && Number.isFinite(payload.visits)) {
+    stats.visits = Math.max(0, Math.floor(payload.visits));
+  }
+}
+
+async function fetchStatsSnapshot(silent = false): Promise<void> {
+  try {
+    const response = await fetch('/api/stats');
+    if (!response.ok) {
+      const message = await extractErrorMessage(response);
+      throw new Error(message);
+    }
+    const data = (await response.json()) as UsageStats;
+    updateStatsFromPayload(data);
+    if (!silent) {
+      stats.error = null;
+    }
+  } catch (error) {
+    if (!silent) {
+      stats.error = error instanceof Error ? error.message : 'Failed to load usage stats.';
+    }
+  }
+}
+
+async function recordVisitOnce(): Promise<void> {
+  stats.loading = true;
+  stats.error = null;
+  try {
+    const response = await fetch('/api/stats/visit', {
+      method: 'POST'
+    });
+    if (!response.ok) {
+      const message = await extractErrorMessage(response);
+      throw new Error(message);
+    }
+    const data = (await response.json()) as UsageStats;
+    updateStatsFromPayload(data);
+  } catch (error) {
+    stats.error = error instanceof Error ? error.message : 'Failed to update usage stats.';
+    await fetchStatsSnapshot(true);
+  } finally {
+    stats.loading = false;
+  }
+}
 
 function openIssuesModal() {
   if (!hasErrors.value && !hasWarnings.value) {
@@ -1208,6 +1307,10 @@ async function handleGeneratePdf() {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
+
+    fetchStatsSnapshot(true).catch((error) => {
+      console.warn('Failed to refresh stats after PDF generation', error);
+    });
   } catch (error) {
     status.pdfError = error instanceof Error ? error.message : 'Failed to generate PDF.';
   } finally {
@@ -1749,6 +1852,48 @@ function getAvailablePrintings(item: ResolvedItemWithMeta): any[] {
   text-decoration: underline;
 }
 
+.hero-stats {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.hero-stat {
+  min-width: 140px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  padding: 0.85rem 1.2rem;
+  text-align: center;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+}
+
+.hero-stat-number {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.hero-stat-label {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.02em;
+}
+
+.hero-stats-error {
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
 @media (max-width: 768px) {
   .clean-hero {
     min-height: 300px;
@@ -1776,6 +1921,15 @@ function getAvailablePrintings(item: ResolvedItemWithMeta): any[] {
   .hero-pill {
     width: 100%;
     justify-content: center;
+  }
+
+  .hero-stats {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .hero-stat {
+    width: 100%;
   }
 }
 

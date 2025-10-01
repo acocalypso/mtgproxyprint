@@ -108,6 +108,54 @@ describe('POST /api/resolve', () => {
     expect(mockService.findByName).toHaveBeenCalled();
   });
 
+  it('resolves cards by set when collector number omitted', async () => {
+    const anthroplasm = {
+      id: 'card-anthro',
+      name: 'Anthroplasm',
+      lang: 'en',
+      set: 'ulg',
+      collector_number: '61',
+      layout: 'normal',
+      image_status: 'highres_scan',
+      highres_image: true,
+      image_uris: {
+        png: 'https://img.scryfall.io/anthroplasm.png'
+      }
+    };
+
+    mockService.findByName.mockImplementation(async (name: string, options?: any) => {
+      if (name === 'Anthroplasm' && options?.set === 'ulg') {
+        return anthroplasm as any;
+      }
+      return null;
+    });
+    mockService.getPrintings.mockReturnValue([anthroplasm]);
+    mockService.toResolvedCard.mockReturnValue({
+      card: {
+        id: anthroplasm.id,
+        name: anthroplasm.name,
+        lang: anthroplasm.lang,
+        set: anthroplasm.set,
+        collector_number: anthroplasm.collector_number,
+        layout: anthroplasm.layout
+      },
+      image: anthroplasm.image_uris.png,
+      highRes: true
+    });
+
+    const { createServer } = await import('../app');
+    const app = createServer({ enableStatic: false });
+    const response = await request(app)
+      .post('/api/resolve')
+      .send({ decklist: '1 Anthroplasm (ulg)' })
+      .expect(200);
+
+    expect(response.body.items).toHaveLength(1);
+    expect(response.body.items[0].card.name).toBe('Anthroplasm');
+    expect(mockService.findByCollector).not.toHaveBeenCalled();
+    expect(mockService.findByName).toHaveBeenCalledWith('Anthroplasm', expect.objectContaining({ set: 'ulg' }));
+  });
+
   it('returns 400 when decklist missing', async () => {
     const { createServer } = await import('../app');
     const app = createServer({ enableStatic: false });

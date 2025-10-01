@@ -14,6 +14,17 @@ describe('parseDecklist', () => {
     });
   });
 
+  it('parses lines with set but no collector number', () => {
+    const result = parseDecklist('1 Anthroplasm (ulg)');
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      qty: 1,
+      name: 'Anthroplasm',
+      set: 'ulg'
+    });
+    expect(result[0].collector).toBeUndefined();
+  });
+
   it('parses foil flag with suffix collector', () => {
     const result = parseDecklist('1 Sol Ring (c20) 1a *F*');
     expect(result[0]).toMatchObject({

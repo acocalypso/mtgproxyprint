@@ -1,4 +1,4 @@
-const PRIMARY_PATTERN = /^(\d+)x?\s+(.+?)\s+\(([^)]+)\)\s+([^\s*]+)(?:\s+\*F\*)?$/i;
+const PRIMARY_PATTERN = /^(\d+)x?\s+(.+?)\s+\(([^)]+)\)(?:\s+([^\s*]+))?(?:\s+\*F\*)?$/i;
 const FALLBACK_PATTERN = /^(\d+)x?\s+(.+)$/i;
 
 export interface ParsedLine {
@@ -32,18 +32,23 @@ export function parseDecklist(input: string): ParsedLine[] {
       const qty = Number(primaryMatch[1]);
       const name = primaryMatch[2].trim();
       const set = primaryMatch[3].trim();
-      const collector = primaryMatch[4].trim();
+  const collector = primaryMatch[4] ? primaryMatch[4].trim() : undefined;
       const foil = /\*F\*/i.test(trimmed);
 
       if (!Number.isNaN(qty) && qty > 0 && name) {
-        parsed.push({
+        const payload: ParsedLine = {
           original: raw,
           qty,
           name,
           set,
-          collector,
           foil
-        });
+        };
+
+        if (collector) {
+          payload.collector = collector;
+        }
+
+        parsed.push(payload);
         continue;
       }
     }

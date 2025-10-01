@@ -648,13 +648,13 @@
             <select 
               :id="`printing-${tile.item.id}`"
               :value="tile.item.selectedPrinting?.id || ''"
-              :disabled="!hasMultipleGermanSets(tile.item)"
+              :disabled="!hasMultiplePrintings(tile.item)"
               class="tile-set-dropdown"
-              :class="{ 'tile-set-dropdown--disabled': !hasMultipleGermanSets(tile.item) }"
+              :class="{ 'tile-set-dropdown--disabled': !hasMultiplePrintings(tile.item) }"
               @change="handlePrintingChange(tile.item.id, ($event.target as HTMLSelectElement).value)"
             >
               <option 
-                v-for="printing in getGermanPrintings(tile.item)" 
+                v-for="printing in getAvailablePrintings(tile.item)" 
                 :key="printing.id" 
                 :value="printing.id"
               >
@@ -1563,49 +1563,33 @@ function handlePrintingChange(itemId: number, printingId: string) {
 }
 
 
-function hasMultipleGermanSets(item: ResolvedItemWithMeta): boolean {
-  if (!item.allPrintings || item.allPrintings.length <= 1) {
-    return false;
-  }
-  
-  const originalLang = item.selectedPrinting?.lang || item.card?.lang || 'en';
-  
-  // If it's a German card, check if there are multiple German printings OR multiple sets in general
-  if (originalLang === 'de') {
-    const germanPrintings = item.allPrintings.filter(p => p.lang === 'de');
-    // Enable if there are multiple German printings OR if there are many sets available (user might want to see other languages)
-    return germanPrintings.length > 1 || item.allPrintings.length > 5;
-  }
-  
-  // For English cards, enable if there are multiple printings
-  return item.allPrintings.length > 1;
+function hasMultiplePrintings(item: ResolvedItemWithMeta): boolean {
+  return Boolean(item.allPrintings && item.allPrintings.length > 1);
 }
 
-function getGermanPrintings(item: ResolvedItemWithMeta): any[] {
+function getAvailablePrintings(item: ResolvedItemWithMeta): any[] {
   if (!item.allPrintings) return [];
-  
-  const originalLang = item.selectedPrinting?.lang || item.card?.lang || 'en';
-  
-  // If it's a German card, prioritize German printings but show all if there are many sets
-  if (originalLang === 'de') {
-    const germanPrintings = item.allPrintings.filter(p => p.lang === 'de');
-    
-    // If there are multiple German printings, show only German ones
-    if (germanPrintings.length > 1) {
-      return germanPrintings;
+
+  const selectedId = item.selectedPrinting?.id;
+  const preferredLang = item.selectedPrinting?.lang || item.card?.lang || 'en';
+
+  const printings = [...item.allPrintings];
+
+  printings.sort((a, b) => {
+    if (a.id === selectedId) return -1;
+    if (b.id === selectedId) return 1;
+
+    if (a.lang === preferredLang && b.lang !== preferredLang) return -1;
+    if (b.lang === preferredLang && a.lang !== preferredLang) return 1;
+
+    if (a.released_at && b.released_at) {
+      return new Date(b.released_at).getTime() - new Date(a.released_at).getTime();
     }
-    
-    // If only one German printing but many total printings, show all (so user can choose different languages)
-    if (germanPrintings.length === 1 && item.allPrintings.length > 5) {
-      return item.allPrintings;
-    }
-    
-    // Otherwise just show the German printing(s)
-    return germanPrintings.length > 0 ? germanPrintings : [item.selectedPrinting].filter(Boolean);
-  }
-  
-  // For English cards, show all printings
-  return item.allPrintings;
+
+    return 0;
+  });
+
+  return printings;
 }
 
 

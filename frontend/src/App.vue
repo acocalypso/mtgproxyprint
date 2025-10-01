@@ -787,7 +787,9 @@ const search = reactive({
 
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
-type ResolvedItemWithMeta = ResolveItem & { id: number };
+type ItemSource = 'decklist' | 'manual';
+
+type ResolvedItemWithMeta = ResolveItem & { id: number; source?: ItemSource };
 
 const resolvedItems = reactive<ResolvedItemWithMeta[]>([]);
 
@@ -954,7 +956,11 @@ async function handlePreview() {
 
     const payload = (await response.json()) as ResolveResponse;
     console.log('API Response received:', payload);
-    const next = (payload.items ?? []).map((item, index) => ({ ...item, id: index }));
+    const next = (payload.items ?? []).map((item, index) => ({
+      ...item,
+      id: index,
+      source: 'decklist' as const
+    }));
     console.log('Processed items with IDs:', next);
     resetResolvedItems(next);
   } catch (error) {
@@ -1285,7 +1291,8 @@ function addCardFromSearch(result: SearchResult) {
       image: faces[0]?.image || defaultPrinting.image_uris?.png || defaultPrinting.image_uris?.normal,
       highRes: true,
       allPrintings: result.allPrintings || [defaultPrinting],
-      selectedPrinting: defaultPrinting
+      selectedPrinting: defaultPrinting,
+      source: 'manual'
     };
     
     resolvedItems.push(newItem);
@@ -1310,7 +1317,8 @@ function addCardFromSearch(result: SearchResult) {
       image: defaultPrinting.image_uris?.png || defaultPrinting.image_uris?.normal || result.image,
       highRes: true,
       allPrintings: result.allPrintings || [defaultPrinting],
-      selectedPrinting: defaultPrinting
+      selectedPrinting: defaultPrinting,
+      source: 'manual'
     };
     
     resolvedItems.push(newItem);
@@ -1321,7 +1329,18 @@ function addCardFromSearch(result: SearchResult) {
 }
 
 function resetResolvedItems(items: ResolvedItemWithMeta[]): void {
-  resolvedItems.splice(0, resolvedItems.length, ...items);
+  const manualItems = resolvedItems.filter(item => item.source === 'manual');
+  const dedupedManualIds = new Set<number>();
+  const preservedManualItems = manualItems.filter(item => {
+    if (dedupedManualIds.has(item.id)) {
+      return false;
+    }
+    dedupedManualIds.add(item.id);
+    return true;
+  });
+
+  const nextItems = [...preservedManualItems, ...items];
+  resolvedItems.splice(0, resolvedItems.length, ...nextItems);
 }
 
 function handlePrintingChange(itemId: number, printingId: string) {

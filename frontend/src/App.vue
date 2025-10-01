@@ -3,13 +3,19 @@
     <!-- Hero Section -->
     <header class="clean-hero">
       <div class="hero-background">
-        <img src="./logo/header.jpg" alt="MTG Proxy Print" class="hero-background-image" />
-        <div class="hero-overlay"></div>
+        <img
+          src="./logo/header.jpg"
+          alt="MTG Proxy Print"
+          class="hero-background-image"
+        >
+        <div class="hero-overlay" />
       </div>
       
       <div class="hero-content">
         <div class="hero-info-box">
-          <h1 class="hero-title">MTG Proxy Print</h1>
+          <h1 class="hero-title">
+            MTG Proxy Print
+          </h1>
           <p class="hero-description">
             Create high-quality proxy cards for playtesting and casual games.<br>
             Paste your decklist, preview card images, and export print-ready PDFs.
@@ -23,18 +29,52 @@
           
           <div class="hero-badges">
             <div class="hero-pill">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                <path d="M12 22V12" stroke="currentColor" stroke-width="2"/>
-                <path d="M2 7L12 12L22 7" stroke="currentColor" stroke-width="2"/>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  d="M12 2L2 7V17L12 22L22 17V7L12 2Z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M12 22V12"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <path
+                  d="M2 7L12 12L22 7"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
               </svg>
-              <span><strong>Moxfield Compatible:</strong> <a href="https://moxfield.com" target="_blank" rel="noopener">Moxfield.com</a> export format supported</span>
+              <span><strong>Moxfield Compatible:</strong> <a
+                href="https://moxfield.com"
+                target="_blank"
+                rel="noopener"
+              >Moxfield.com</a> export format supported</span>
             </div>
             <div class="hero-pill">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 3C7.03 3 3 7.03 3 12C3 16.97 7.03 21 12 21C16.97 21 21 16.97 21 12C21 7.03 16.97 3 12 3ZM10.5 16.5L6 12L7.41 10.59L10.5 13.67L16.59 7.59L18 9L10.5 16.5Z" fill="currentColor"/>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  d="M12 3C7.03 3 3 7.03 3 12C3 16.97 7.03 21 12 21C16.97 21 21 16.97 21 12C21 7.03 16.97 3 12 3ZM10.5 16.5L6 12L7.41 10.59L10.5 13.67L16.59 7.59L18 9L10.5 16.5Z"
+                  fill="currentColor"
+                />
               </svg>
-              <span><strong>Powered by Scryfall:</strong> Card data and imagery provided by the <a href="https://scryfall.com/docs/api" target="_blank" rel="noopener">Scryfall API</a>.</span>
+              <span><strong>Powered by Scryfall:</strong> Card data and imagery provided by the <a
+                href="https://scryfall.com/docs/api"
+                target="_blank"
+                rel="noopener"
+              >Scryfall API</a>.</span>
             </div>
           </div>
         </div>
@@ -47,88 +87,182 @@
         <!-- Quick Add Section -->
         <div class="search-section">
           <h2>Quick Add Cards</h2>
-          <p class="section-description">Search and add individual cards to your collection</p>
+          <p class="section-description">
+            Search and add individual cards to your collection
+          </p>
           
           <div class="search-card">
             <div class="search-input-wrapper">
               <div class="search-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
-                  <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2"/>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <circle
+                    cx="11"
+                    cy="11"
+                    r="8"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <path
+                    d="M21 21L16.65 16.65"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
                 </svg>
               </div>
               <input
-                type="text"
                 v-model="search.query"
-                @input="handleSearchInput"
-                @keydown.escape="clearSearch"
+                type="text"
                 placeholder="Search for cards by name..."
                 class="search-input"
                 autocomplete="off"
-              />
+                @input="handleSearchInput"
+                @keydown.escape="clearSearch"
+              >
               <button
                 v-if="search.query"
-                @click="clearSearch"
                 class="search-clear"
                 type="button"
                 aria-label="Clear search"
+                @click="clearSearch"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <path
+                    d="M18 6L6 18M6 6L18 18"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
                 </svg>
               </button>
             </div>
             
-            <div v-if="search.results.length > 0" class="search-results">
+            <div
+              v-if="search.results.length > 0"
+              class="search-results"
+            >
               <div
                 v-for="result in search.results"
                 :key="`${result.id}-${result.set}-${result.collector_number}`"
                 class="search-result"
                 @click="addCardFromSearch(result)"
               >
-                <img :src="result.image" :alt="result.name" class="search-result-image" />
+                <img
+                  :src="result.image"
+                  :alt="result.name"
+                  class="search-result-image"
+                >
                 <div class="search-result-info">
-                  <div class="search-result-name">{{ result.name }}</div>
-                  <div class="search-result-set">{{ result.set }} #{{ result.collector_number }}</div>
+                  <div class="search-result-name">
+                    {{ result.name }}
+                  </div>
+                  <div class="search-result-set">
+                    {{ result.set }} #{{ result.collector_number }}
+                  </div>
                 </div>
-                <button class="search-result-add" aria-label="Add card">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <button
+                  class="search-result-add"
+                  aria-label="Add card"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <path
+                      d="M12 5V19M5 12H19"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
                   </svg>
                 </button>
               </div>
             </div>
             
-            <div v-if="search.loading" class="search-loading">
-              <div class="loading-spinner"></div>
+            <div
+              v-if="search.loading"
+              class="search-loading"
+            >
+              <div class="loading-spinner" />
               <span>Searching...</span>
             </div>
             
-            <div v-if="search.error" class="search-error">
+            <div
+              v-if="search.error"
+              class="search-error"
+            >
               <div class="error-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                  <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" stroke-width="2"/>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <path
+                    d="M15 9L9 15M9 9L15 15"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
                 </svg>
               </div>
               <span>{{ search.error }}</span>
             </div>
             
-            <div v-if="search.query && !search.loading && search.results.length === 0 && !search.error" class="search-no-results">
+            <div
+              v-if="search.query && !search.loading && search.results.length === 0 && !search.error"
+              class="search-no-results"
+            >
               <div class="no-results-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
-                  <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2"/>
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <circle
+                    cx="11"
+                    cy="11"
+                    r="8"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <path
+                    d="M21 21L16.65 16.65"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
                 </svg>
               </div>
               <span>No cards found for "{{ search.query }}"</span>
-              <p class="no-results-hint">Try a different spelling or card name</p>
+              <p class="no-results-hint">
+                Try a different spelling or card name
+              </p>
             </div>
           </div>
         </div>
 
         <h2>Import Decklist</h2>
-        <p class="section-description">Paste your complete decklist for bulk processing</p>
+        <p class="section-description">
+          Paste your complete decklist for bulk processing
+        </p>
         
         <div class="content-grid">
           <!-- Decklist Input -->
@@ -143,7 +277,10 @@
             </div>
             
             <div class="input-area">
-              <label for="decklist" class="input-label">
+              <label
+                for="decklist"
+                class="input-label"
+              >
                 One card per line. Example: <code>3 Lightning Bolt (2XM) 123</code>
               </label>
               <textarea
@@ -153,15 +290,15 @@
                 spellcheck="false"
                 placeholder="3 Al Bhed Salvagers (FIN) 88&#10;1 Sephiroth, Planet's Heir (FIN) 553 *F*&#10;2 Llanowar Elves&#10;4 Lightning Bolt"
                 class="decklist-input"
-              ></textarea>
+              />
             </div>
 
             <div class="decklist-actions">
               <button 
                 type="button" 
-                @click="handlePreview" 
-                :disabled="status.loadingResolve"
+                :disabled="status.loadingResolve" 
                 class="btn btn-secondary decklist-preview-btn"
+                @click="handlePreview"
               >
                 <span v-if="status.loadingResolve">Processing...</span>
                 <span v-else>👁️ Preview Cards</span>
@@ -172,20 +309,41 @@
           <!-- Settings -->
           <div class="settings-section">
             <h3>Print Settings</h3>
-            <p class="settings-description">Configure your PDF output</p>
+            <p class="settings-description">
+              Configure your PDF output
+            </p>
             
             <div class="settings-form">
               <div class="form-group">
                 <label class="form-label">Paper Size</label>
-                <select v-model="form.paper" class="form-select">
-                  <option value="A4">A4 (210 × 297 mm)</option>
-                  <option value="A3">A3 (297 × 420 mm)</option>
-                  <option value="A5">A5 (148 × 210 mm)</option>
-                  <option value="Letter">Letter (8.5 × 11 in)</option>
-                  <option value="Legal">Legal (8.5 × 14 in)</option>
-                  <option value="Tabloid">Tabloid (11 × 17 in)</option>
-                  <option value="A4-4x2">A4 Landscape 4×2 (8 cards)</option>
-                  <option value="Letter-4x2">Letter Landscape 4×2 (8 cards)</option>
+                <select
+                  v-model="form.paper"
+                  class="form-select"
+                >
+                  <option value="A4">
+                    A4 (210 × 297 mm)
+                  </option>
+                  <option value="A3">
+                    A3 (297 × 420 mm)
+                  </option>
+                  <option value="A5">
+                    A5 (148 × 210 mm)
+                  </option>
+                  <option value="Letter">
+                    Letter (8.5 × 11 in)
+                  </option>
+                  <option value="Legal">
+                    Legal (8.5 × 14 in)
+                  </option>
+                  <option value="Tabloid">
+                    Tabloid (11 × 17 in)
+                  </option>
+                  <option value="A4-4x2">
+                    A4 Landscape 4×2 (8 cards)
+                  </option>
+                  <option value="Letter-4x2">
+                    Letter Landscape 4×2 (8 cards)
+                  </option>
                 </select>
               </div>
               
@@ -193,20 +351,24 @@
                 <label class="form-label">Card Gap</label>
                 <div class="input-group">
                   <input 
+                    v-model.number="form.gapMm" 
                     type="number" 
                     min="0" 
                     step="0.1" 
-                    v-model.number="form.gapMm" 
                     class="form-input"
-                  />
+                  >
                   <span class="input-suffix">mm</span>
                 </div>
               </div>
               
               <div class="form-group">
                 <label class="checkbox-container">
-                  <input type="checkbox" v-model="form.cutMarks" class="checkbox" />
-                  <span class="checkmark"></span>
+                  <input
+                    v-model="form.cutMarks"
+                    type="checkbox"
+                    class="checkbox"
+                  >
+                  <span class="checkmark" />
                   <span class="checkbox-label">Include cut marks for precise cutting (works in landscape only at the moment)</span>
                 </label>
               </div>
@@ -217,8 +379,8 @@
               <button
                 type="button"
                 class="btn btn-primary"
-                @click="handleGeneratePdf"
                 :disabled="!canGeneratePdf || status.loadingPdf"
+                @click="handleGeneratePdf"
               >
                 <span v-if="status.loadingPdf">Generating...</span>
                 <span v-else>📄 Generate PDF</span>
@@ -226,11 +388,17 @@
             </div>
             
             <!-- Status Messages -->
-            <div v-if="status.resolveError" class="error-message">
+            <div
+              v-if="status.resolveError"
+              class="error-message"
+            >
               ❌ {{ status.resolveError }}
             </div>
             
-            <div v-if="status.pdfError" class="error-message">
+            <div
+              v-if="status.pdfError"
+              class="error-message"
+            >
               ❌ {{ status.pdfError }}
             </div>
           </div>
@@ -239,7 +407,10 @@
     </main>
 
     <!-- Preview Section -->
-    <section v-if="hasResolvedItems" class="preview-section">
+    <section
+      v-if="hasResolvedItems"
+      class="preview-section"
+    >
       <div class="section-header">
         <div class="section-title">
           <h2>Card Preview</h2>
@@ -253,27 +424,87 @@
               <span class="stat-label">card<span v-if="!isSingleTile">s</span></span>
             </div>
             
-            <div v-if="hasErrors" class="stat-pill stat-pill--error">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" stroke-width="2"/>
+            <div
+              v-if="hasErrors"
+              class="stat-pill stat-pill--error"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <path
+                  d="M15 9L9 15M9 9L15 15"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
               </svg>
               <span>Issues found</span>
             </div>
             
-            <div v-else-if="hasWarnings" class="stat-pill stat-pill--warning">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2"/>
-                <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2"/>
-                <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2"/>
+            <div
+              v-else-if="hasWarnings"
+              class="stat-pill stat-pill--warning"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <line
+                  x1="12"
+                  y1="9"
+                  x2="12"
+                  y2="13"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <line
+                  x1="12"
+                  y1="17"
+                  x2="12.01"
+                  y2="17"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
               </svg>
               <span>Warnings</span>
             </div>
             
-            <div v-else class="stat-pill stat-pill--success">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2"/>
-                <polyline points="22,4 12,14.01 9,11.01" stroke="currentColor" stroke-width="2"/>
+            <div
+              v-else
+              class="stat-pill stat-pill--success"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <polyline
+                  points="22,4 12,14.01 9,11.01"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
               </svg>
               <span>Ready to print</span>
             </div>
@@ -282,8 +513,8 @@
           <button
             type="button"
             class="btn btn-secondary preview-download-btn"
-            @click="downloadAllTiles"
             :disabled="status.downloadingAll || !hasDownloadableTiles"
+            @click="downloadAllTiles"
           >
             <span v-if="status.downloadingAll">Downloading...</span>
             <span v-else>⬇️ Download all cards</span>
@@ -291,7 +522,10 @@
         </div>
       </div>
 
-      <div v-if="status.downloadError" class="download-error">
+      <div
+        v-if="status.downloadError"
+        class="download-error"
+      >
         ❌ {{ status.downloadError }}
       </div>
 
@@ -315,45 +549,75 @@
             @drop="handleDrop($event, index)"
             @dragend="handleDragEnd"
           >
-            <img :src="tile.image" :alt="tile.label" loading="lazy" />
-            <span v-if="tile.warning" class="tile-note">{{ tile.warning }}</span>
+            <img
+              :src="tile.image"
+              :alt="tile.label"
+              loading="lazy"
+            >
+            <span
+              v-if="tile.warning"
+              class="tile-note"
+            >{{ tile.warning }}</span>
 
             <button
               class="tile-download-btn"
               type="button"
               :disabled="isTileDownloading(tile.key)"
-              @click.stop="downloadTileImage(tile, index)"
               title="Download image"
+              @click.stop="downloadTileImage(tile, index)"
             >
-              <span v-if="isTileDownloading(tile.key)" class="tile-download-spinner"></span>
-              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M12 3v12m0 0 5-5m-5 5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M5 19h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <span
+                v-if="isTileDownloading(tile.key)"
+                class="tile-download-spinner"
+              />
+              <svg
+                v-else
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  d="M12 3v12m0 0 5-5m-5 5-5-5"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M5 19h14"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
               </svg>
             </button>
             
             <!-- Remove/Restore button -->
             <button 
               v-if="!tile.excluded"
-              @click="removeCard(tile.key)"
               class="tile-remove-btn"
               title="Remove from PDF"
               type="button"
+              @click="removeCard(tile.key)"
             >
               ✕
             </button>
             <button 
               v-else
-              @click="restoreCard(tile.key)"
               class="tile-restore-btn"
               title="Restore to PDF"
               type="button"
+              @click="restoreCard(tile.key)"
             >
               ↶
             </button>
             
             <!-- Excluded overlay -->
-            <div v-if="tile.excluded" class="tile-excluded-overlay">
+            <div
+              v-if="tile.excluded"
+              class="tile-excluded-overlay"
+            >
               <span class="excluded-text">Excluded</span>
             </div>
           </div>
@@ -366,10 +630,10 @@
             <select 
               :id="`printing-${tile.item.id}`"
               :value="tile.item.selectedPrinting?.id || ''"
-              @change="handlePrintingChange(tile.item.id, ($event.target as HTMLSelectElement).value)"
               :disabled="!hasMultipleGermanSets(tile.item)"
               class="tile-set-dropdown"
               :class="{ 'tile-set-dropdown--disabled': !hasMultipleGermanSets(tile.item) }"
+              @change="handlePrintingChange(tile.item.id, ($event.target as HTMLSelectElement).value)"
             >
               <option 
                 v-for="printing in getGermanPrintings(tile.item)" 
@@ -377,7 +641,9 @@
                 :value="printing.id"
               >
                 {{ printing.set_name }} ({{ printing.set.toUpperCase() }}) #{{ printing.collector_number }}
-                <template v-if="printing.lang !== 'en'"> · {{ printing.lang }}</template>
+                <template v-if="printing.lang !== 'en'">
+                  · {{ printing.lang }}
+                </template>
               </option>
             </select>
           </div>
@@ -409,7 +675,9 @@
     <section class="community-section">
       <div class="community-card">
         <div class="community-copy">
-          <h2 class="community-title">Built with the community</h2>
+          <h2 class="community-title">
+            Built with the community
+          </h2>
           <p class="community-description">
             MTG Proxy Print is fully open source and growing fast. We're looking for contributors&mdash;if you care about better proxies, new print layouts, or other features, we would love your help shaping the next release.
           </p>
@@ -543,9 +811,6 @@ const dragState = reactive({
 
 const downloadingTiles = reactive<Record<string, boolean>>({});
 
-// Track which face is currently shown for double-sided cards
-const activeFaces = reactive<Map<string, number>>(new Map());
-
 // Compute effective display data for each item (handling face flipping)
 const displayItems = computed<ResolvedItemWithMeta[]>(() => {
   const result: ResolvedItemWithMeta[] = [];
@@ -615,17 +880,7 @@ function restoreCard(tileKey: string) {
   excludedCards.delete(tileKey);
 }
 
-// Function to flip a double-sided card
-function flipCard(cardKey: string, totalFaces: number) {
-  const currentFace = activeFaces.get(cardKey) || 0;
-  const nextFace = (currentFace + 1) % totalFaces;
-  activeFaces.set(cardKey, nextFace);
-}
 
-// Get the currently active face for a card
-function getActiveFace(cardKey: string): number {
-  return activeFaces.get(cardKey) || 0;
-}
 
 // Drag and drop handlers
 function handleDragStart(event: DragEvent, index: number) {
@@ -1004,7 +1259,7 @@ function addCardFromSearch(result: SearchResult) {
   
   if (isDoubleSided) {
     // Create a resolved item with both faces
-    const faces = defaultPrinting.card_faces.map((face: any, index: number) => ({
+  const faces = defaultPrinting.card_faces.map((face: any) => ({
       name: face.name,
       image: face.image_uris?.png || face.image_uris?.normal,
       highRes: true
@@ -1116,17 +1371,6 @@ function handlePrintingChange(itemId: number, printingId: string) {
   item.line.collector = newPrinting.collector_number;
 }
 
-function hasMultipleMeaningfulChoices(item: ResolvedItemWithMeta): boolean {
-  if (!item.allPrintings || item.allPrintings.length <= 1) {
-    return false;
-  }
-  
-  const originalLang = item.selectedPrinting?.lang || 'en';
-  const filteredPrintings = getFilteredPrintings(item);
-  
-  // Enable dropdown only if there are multiple meaningful choices
-  return filteredPrintings.length > 1;
-}
 
 function hasMultipleGermanSets(item: ResolvedItemWithMeta): boolean {
   if (!item.allPrintings || item.allPrintings.length <= 1) {
@@ -1173,36 +1417,7 @@ function getGermanPrintings(item: ResolvedItemWithMeta): any[] {
   return item.allPrintings;
 }
 
-function getDisplayPrintings(item: ResolvedItemWithMeta): any[] {
-  if (!item.allPrintings) return [];
-  
-  const originalLang = item.selectedPrinting?.lang || 'en';
-  
-  // If the original card is non-English, show same language printings or at least the current one
-  if (originalLang !== 'en') {
-    const sameLangPrintings = item.allPrintings.filter(p => p.lang === originalLang);
-    // Always show at least the current printing
-    return sameLangPrintings.length > 0 ? sameLangPrintings : [item.selectedPrinting].filter(Boolean);
-  }
-  
-  // For English cards, show all printings
-  return item.allPrintings;
-}
 
-function getFilteredPrintings(item: ResolvedItemWithMeta): any[] {
-  if (!item.allPrintings) return [];
-  
-  const originalLang = item.selectedPrinting?.lang || 'en';
-  
-  // If the original card is non-English, prioritize same language printings
-  if (originalLang !== 'en') {
-    const sameLangPrintings = item.allPrintings.filter(p => p.lang === originalLang);
-    return sameLangPrintings;
-  }
-  
-  // For English cards, show all printings
-  return item.allPrintings;
-}
 </script>
 
 <style scoped>

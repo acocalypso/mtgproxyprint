@@ -11,6 +11,10 @@
     "build": "npm run build --workspace server && npm run build --workspace frontend",
     "start": "cross-env NODE_ENV=production npm run start --workspace server",
     "test": "npm run test --workspace server",
+    "lint": "eslint --ext .ts,.js,.vue frontend/src server/src",
+    "lint:fix": "eslint --ext .ts,.js,.vue frontend/src server/src --fix",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up",
     "docker:up:detached": "docker-compose up -d",
@@ -22,7 +26,16 @@
     "docker:clean": "docker-compose down --volumes --remove-orphans && docker system prune -f"
   },
   "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
     "concurrently": "^8.2.2",
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "eslint": "^9.36.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-vue": "^10.5.0",
+    "prettier": "^3.6.2",
+    "typescript-eslint": "^8.45.0"
   }
 }

@@ -42,7 +42,7 @@ afterEach(() => {
 
 describe('POST /api/resolve', () => {
   it('resolves cards using batch collection endpoint with fallback', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input.toString();
       if (url.includes('/cards/collection')) {
         return new Response(JSON.stringify({ data: [collectionCard] }), { status: 200 });

@@ -100,7 +100,7 @@ router.post('/resolve', async (req: Request, res: Response) => {
   const client = new ScryfallClient();
   const cache = new Map<string, ScryfallCard>();
 
-  let items: ResolveItem[] = parsedLines.map((line) => ({
+  const items: ResolveItem[] = parsedLines.map((line) => ({
     line: buildLinePayload(line),
     ...(line.parseError ? { error: line.parseError } : {})
   }));
@@ -138,7 +138,7 @@ router.post('/resolve', async (req: Request, res: Response) => {
             unresolved.delete(index);
             continue;
           }
-        } catch (error) {
+  } catch {
           // Continue to named lookup
         }
       }
@@ -167,7 +167,7 @@ router.post('/resolve', async (req: Request, res: Response) => {
           
           unresolved.delete(index);
         }
-      } catch (error) {
+  } catch {
         // Continue to collection lookup
       }
     }
@@ -314,7 +314,7 @@ async function fetchAllPrintings(card: ScryfallCard): Promise<any[]> {
     
     if (printingsResponse.ok) {
       const printingsData = await printingsResponse.json();
-      let fetchedPrintings = printingsData.data || [];
+      const fetchedPrintings = printingsData.data || [];
       
       // Make sure the original found card is included in the printings
       const originalCardExists = fetchedPrintings.some((p: any) => p.id === cardWithOracleId.id);

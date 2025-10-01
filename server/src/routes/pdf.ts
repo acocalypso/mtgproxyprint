@@ -44,7 +44,7 @@ router.post('/pdf', async (req: Request, res: Response) => {
     await page.setContent(html, { waitUntil: ['load', 'networkidle0'] });
     
     // Handle landscape paper formats
-    let pdfOptions: any = {
+    const pdfOptions: any = {
       printBackground: true,
       preferCSSPageSize: true
     };

@@ -21,7 +21,6 @@ const CARD_HEIGHT_MM = 88;
 const CUT_MARK_THICKNESS_MM = 0.2;
 const CUT_MARK_LENGTH_MM = 4;
 const PAGE_MARGIN_MM = 10;
-const BLEED_MM = 3;
 
 
 export interface Tile {
@@ -185,7 +184,7 @@ function expandTiles(tiles: Tile[]): Array<{ image: string; label?: string }> {
 
 function createPageMarkup(pageCards: Array<{ image: string; label?: string }>, pageIndex: number, cutMarks: boolean, paperConfig: PaperConfig, gapMm: number): string {
   const tilesMarkup = pageCards
-    .map((tile, index) => createTileMarkup(tile, pageIndex * paperConfig.maxCardsPerPage + index, false))
+  .map((tile, index) => createTileMarkup(tile, pageIndex * paperConfig.maxCardsPerPage + index))
     .join('\n');
 
   const cutMarksMarkup = cutMarks ? createCutMarksOverlay(paperConfig, gapMm) : '';
@@ -247,7 +246,7 @@ function createCutMarksOverlay(paperConfig: PaperConfig, gapMm: number): string 
   </div>`;
 }
 
-function createTileMarkup(tile: { image: string; label?: string }, index: number, cutMarks: boolean): string {
+function createTileMarkup(tile: { image: string; label?: string }, index: number): string {
   return `<div class="tile" data-index="${index}">
     <img src="${escapeAttribute(tile.image)}" alt="Card image" />
   </div>`;

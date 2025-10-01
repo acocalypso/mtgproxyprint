@@ -295,7 +295,7 @@
         ❌ {{ status.downloadError }}
       </div>
 
-      <div class="preview-grid" :style="previewGridStyle">
+      <div class="preview-grid">
         <div
           v-for="(tile, index) in getPreviewTiles()"
           :key="tile.key"
@@ -438,7 +438,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watchEffect, type CSSProperties } from 'vue';
+import { computed, reactive, ref, watchEffect } from 'vue';
 import JSZip from 'jszip';
 
 interface ResolveLine {
@@ -672,11 +672,6 @@ function handleDragEnd() {
 
 const totalTiles = computed<number>(() => previewTiles.value.length);
 const isSingleTile = computed(() => totalTiles.value === 1);
-const gapCss = computed(() => `${Math.max(0, Number.isFinite(form.gapMm) ? form.gapMm : 0)}mm`);
-const previewGridStyle = reactive<CSSProperties>({ '--gap-mm': gapCss.value } as CSSProperties);
-watchEffect(() => {
-  previewGridStyle['--gap-mm'] = gapCss.value;
-});
 const hasResolvedItems = computed(() => resolvedItems.length > 0);
 const hasErrors = computed(() => resolvedItems.some((item) => Boolean(item.error)));
 const hasWarnings = computed(() => resolvedItems.some((item) => !item.error && item.warning));

@@ -382,7 +382,7 @@
                   </option>
                 </select>
               </div>
-              
+
               <div class="form-group">
                 <label class="form-label">Card Gap</label>
                 <div class="input-group">
@@ -450,7 +450,7 @@
       <div class="section-header">
         <div class="section-title">
           <h2>Card Preview</h2>
-          <span class="section-subtitle">Drag cards to reorder • Select different sets using dropdowns</span>
+          <span class="section-subtitle">Drag cards to reorder • Use dropdowns to change printings</span>
         </div>
         
         <div class="section-controls">
@@ -548,6 +548,28 @@
               </svg>
               <span>Ready to print</span>
             </div>
+          </div>
+
+          <div class="language-selector">
+            <label
+              class="language-selector__label"
+              for="preview-language"
+            >
+              Card language
+            </label>
+            <select
+              id="preview-language"
+              v-model="languagePreference"
+              class="language-selector__control"
+            >
+              <option
+                v-for="option in languageOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
           </div>
 
           <button
@@ -853,7 +875,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watchEffect } from 'vue';
+import { computed, onMounted, reactive, ref, watch, watchEffect } from 'vue';
 import JSZip from 'jszip';
 
 interface ResolveLine {
@@ -886,6 +908,7 @@ interface ResolveItem {
   isSecondaryFace?: boolean; // Indicates this is the back face of a double-sided card
   allPrintings?: any[]; // All available printings for this card
   selectedPrinting?: any; // Currently selected printing
+  defaultPrintingId?: string; // Original printing id for reverting preferences
 }
 
 interface ResolveResponse {
@@ -936,6 +959,24 @@ const stats = reactive({
   loading: false,
   error: null as string | null
 });
+
+const languagePreference = ref<'auto' | string>('auto');
+
+const languageOptions = [
+  { value: 'auto', label: 'Original language (no override)' },
+  { value: 'en', label: 'English' },
+  { value: 'de', label: 'German' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'fr', label: 'French' },
+  { value: 'it', label: 'Italian' },
+  { value: 'pt', label: 'Portuguese' },
+  { value: 'ja', label: 'Japanese' },
+  { value: 'ko', label: 'Korean' },
+  { value: 'ru', label: 'Russian' },
+  { value: 'ph', label: 'Phyrexian' },
+  { value: 'zhs', label: 'Chinese (Simplified)' },
+  { value: 'zht', label: 'Chinese (Traditional)' }
+] as const;
 
 const VISIT_STORAGE_KEY = 'mtgproxyprint:lastVisit';
 const VISIT_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -1029,6 +1070,13 @@ watchEffect(() => {
   
   previewTiles.value = tiles;
 });
+
+watch(
+  () => languagePreference.value,
+  (next) => {
+    applyLanguagePreferenceToItems(next);
+  }
+);
 
 onMounted(() => {
   recordVisitOnce().catch((error) => {
@@ -1255,10 +1303,19 @@ async function handlePreview() {
   status.loadingResolve = true;
 
   try {
+    const preferredLang = normalizeLanguageCode(languagePreference.value);
+    const requestBody: Record<string, unknown> = {
+      decklist: form.decklist
+    };
+
+    if (preferredLang) {
+      requestBody.lang = preferredLang;
+    }
+
     const response = await fetch('/api/resolve', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ decklist: form.decklist })
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
@@ -1555,20 +1612,29 @@ function clearSearch() {
 
 function addCardFromSearch(result: SearchResult) {
   const newId = Date.now(); // Simple ID generation
-  
-  // Find the printing that matches the search result, or use the first printing as fallback
-  let defaultPrinting;
-  if (result.allPrintings && result.allPrintings.length > 0) {
-    // Try to find the exact printing that was searched for
-    defaultPrinting = result.allPrintings.find(p => 
-      p.id === result.id || 
-      (p.set.toLowerCase() === result.set.toLowerCase() && 
-       p.collector_number === result.collector_number &&
-       p.lang === result.lang)
-    ) || result.allPrintings[0];
-  } else {
-    // Fallback to constructing from search result
-    defaultPrinting = result.fullCard || {
+  const allPrintings = (result.allPrintings && result.allPrintings.length > 0)
+    ? [...result.allPrintings]
+    : [];
+
+  let defaultPrinting = allPrintings.find((printing) =>
+    printing.id === result.id ||
+    (
+      typeof printing.set === 'string' &&
+      printing.set.toLowerCase() === result.set.toLowerCase() &&
+      printing.collector_number === result.collector_number &&
+      normalizeLanguageCode(printing.lang) === normalizeLanguageCode(result.lang)
+    )
+  );
+
+  if (!defaultPrinting && result.fullCard) {
+    defaultPrinting = result.fullCard;
+    if (!allPrintings.includes(defaultPrinting)) {
+      allPrintings.unshift(defaultPrinting);
+    }
+  }
+
+  if (!defaultPrinting) {
+    const fallback = {
       id: result.id,
       name: result.name,
       set: result.set.toLowerCase(),
@@ -1576,70 +1642,30 @@ function addCardFromSearch(result: SearchResult) {
       image_uris: { png: result.image },
       lang: result.lang
     };
+    defaultPrinting = fallback;
+    allPrintings.unshift(fallback);
   }
-  
-  // Check if this is a double-sided card
-  const isDoubleSided = defaultPrinting?.card_faces && defaultPrinting.card_faces.length > 1;
-  
-  if (isDoubleSided) {
-    // Create a resolved item with both faces
-  const faces = defaultPrinting.card_faces.map((face: any) => ({
-      name: face.name,
-      image: face.image_uris?.png || face.image_uris?.normal,
-      highRes: true
-    }));
-    
-    const newItem: ResolvedItemWithMeta = {
-      id: newId,
-      line: {
-        qty: 1,
-        name: result.name,
-        set: defaultPrinting.set.toUpperCase(),
-        collector: defaultPrinting.collector_number
-      },
-      card: {
-        id: defaultPrinting.id,
-        name: result.name,
-        lang: defaultPrinting.lang,
-        set: defaultPrinting.set.toLowerCase(),
-        collector_number: defaultPrinting.collector_number,
-        layout: defaultPrinting.layout || 'normal',
-        faces: faces
-      },
-      image: faces[0]?.image || defaultPrinting.image_uris?.png || defaultPrinting.image_uris?.normal,
-      highRes: true,
-      allPrintings: result.allPrintings || [defaultPrinting],
-      selectedPrinting: defaultPrinting,
-      source: 'manual'
-    };
-    
-    resolvedItems.push(newItem);
-  } else {
-    // Single-faced card
-    const newItem: ResolvedItemWithMeta = {
-      id: newId,
-      line: {
-        qty: 1,
-        name: result.name,
-        set: defaultPrinting.set.toUpperCase(),
-        collector: defaultPrinting.collector_number
-      },
-      card: {
-        id: defaultPrinting.id,
-        name: result.name,
-        lang: defaultPrinting.lang,
-        set: defaultPrinting.set.toLowerCase(),
-        collector_number: defaultPrinting.collector_number,
-        layout: 'normal'
-      },
-      image: defaultPrinting.image_uris?.png || defaultPrinting.image_uris?.normal || result.image,
-      highRes: true,
-      allPrintings: result.allPrintings || [defaultPrinting],
-      selectedPrinting: defaultPrinting,
-      source: 'manual'
-    };
-    
-    resolvedItems.push(newItem);
+
+  const newItem: ResolvedItemWithMeta = {
+    id: newId,
+    line: {
+      qty: 1,
+      name: result.name,
+      set: typeof defaultPrinting.set === 'string' ? defaultPrinting.set.toUpperCase() : undefined,
+      collector: defaultPrinting.collector_number
+    },
+    source: 'manual',
+    allPrintings,
+    selectedPrinting: defaultPrinting,
+    defaultPrintingId: typeof defaultPrinting.id === 'string' ? defaultPrinting.id : undefined
+  };
+
+  applyPrintingToItem(newItem, defaultPrinting);
+  resolvedItems.push(newItem);
+
+  const preferredLang = normalizeLanguageCode(languagePreference.value);
+  if (preferredLang) {
+    applyLanguagePreferenceToItem(newItem, preferredLang);
   }
   
   // Clear search
@@ -1658,7 +1684,14 @@ function resetResolvedItems(items: ResolvedItemWithMeta[]): void {
   });
 
   const nextItems = [...preservedManualItems, ...items];
+  nextItems.forEach((item) => {
+    if (!item.defaultPrintingId && item.selectedPrinting?.id) {
+      item.defaultPrintingId = item.selectedPrinting.id;
+    }
+  });
   resolvedItems.splice(0, resolvedItems.length, ...nextItems);
+
+  applyLanguagePreferenceToItems(languagePreference.value);
 }
 
 function handlePrintingChange(itemId: number, printingId: string) {
@@ -1668,44 +1701,181 @@ function handlePrintingChange(itemId: number, printingId: string) {
   const newPrinting = item.allPrintings.find(p => p.id === printingId);
   if (!newPrinting) return;
   
-  // Update the selected printing
-  item.selectedPrinting = newPrinting;
-  
-  // Update the card data and image
-  const isDoubleSided = newPrinting.card_faces && newPrinting.card_faces.length > 1;
-  
-  if (isDoubleSided) {
-    const faces = newPrinting.card_faces.map((face: any) => ({
-      name: face.name,
-      image: face.image_uris?.png || face.image_uris?.normal,
-      highRes: true
-    }));
-    
-    item.card = {
-      ...item.card!,
-      id: newPrinting.id,
-      lang: newPrinting.lang,
-      set: newPrinting.set.toLowerCase(),
-      collector_number: newPrinting.collector_number,
-      layout: newPrinting.layout || 'normal',
-      faces: faces
-    };
-    item.image = faces[0]?.image;
-  } else {
-    item.card = {
-      ...item.card!,
-      id: newPrinting.id,
-      lang: newPrinting.lang,
-      set: newPrinting.set.toLowerCase(),
-      collector_number: newPrinting.collector_number,
-      layout: newPrinting.layout || 'normal'
-    };
-    item.image = newPrinting.image_uris?.png || newPrinting.image_uris?.normal;
+  if (!item.defaultPrintingId && item.selectedPrinting?.id) {
+    item.defaultPrintingId = item.selectedPrinting.id;
   }
-  
-  // Update line data
-  item.line.set = newPrinting.set.toUpperCase();
-  item.line.collector = newPrinting.collector_number;
+
+  applyPrintingToItem(item, newPrinting);
+
+  if (!normalizeLanguageCode(languagePreference.value)) {
+    item.defaultPrintingId = newPrinting.id;
+  }
+}
+
+
+function normalizeLanguageCode(lang: string | null | undefined): string | null {
+  if (!lang) {
+    return null;
+  }
+  const normalized = String(lang).trim().toLowerCase();
+  if (!normalized || normalized === 'auto') {
+    return null;
+  }
+  return normalized;
+}
+
+function hasPrintableImage(printing: any): boolean {
+  if (!printing) {
+    return false;
+  }
+
+  if (printing.image_uris?.png || printing.image_uris?.normal) {
+    return true;
+  }
+
+  if (Array.isArray(printing.card_faces)) {
+    return printing.card_faces.some((face: any) => Boolean(face?.image_uris?.png || face?.image_uris?.normal));
+  }
+
+  return false;
+}
+
+function mapPrintingFaces(printing: any) {
+  if (!Array.isArray(printing?.card_faces)) {
+    return [];
+  }
+
+  return printing.card_faces.map((face: any) => ({
+    name: face?.name,
+    image: face?.image_uris?.png || face?.image_uris?.normal,
+    highRes: Boolean(face?.image_uris?.png || face?.image_uris?.normal)
+  }));
+}
+
+function clearLanguageWarningIfApplicable(item: ResolvedItemWithMeta, lang: string | null): void {
+  if (!item.warning) {
+    return;
+  }
+
+  const normalizedLang = normalizeLanguageCode(lang);
+  if (!normalizedLang) {
+    return;
+  }
+
+  const selectedLang = normalizeLanguageCode(item.selectedPrinting?.lang || item.card?.lang);
+  if (selectedLang !== normalizedLang) {
+    return;
+  }
+
+  if (/localized printing not available/i.test(item.warning)) {
+    item.warning = undefined;
+  }
+}
+
+function applyPrintingToItem(item: ResolvedItemWithMeta, printing: any): void {
+  item.selectedPrinting = printing;
+
+  const lang = normalizeLanguageCode(printing?.lang) || item.card?.lang || 'en';
+  const normalizedSet = typeof printing?.set === 'string' ? printing.set.toLowerCase() : item.card?.set ?? '';
+  const collectorNumber = printing?.collector_number ?? item.card?.collector_number ?? '';
+  const layout = printing?.layout || item.card?.layout || 'normal';
+  const cardName = item.card?.name ?? printing?.name ?? item.line.name;
+
+  const faces = mapPrintingFaces(printing);
+
+  const nextCard: ResolveCardSummary = {
+    id: printing?.id ?? item.card?.id ?? '',
+    name: cardName,
+    lang,
+    set: normalizedSet,
+    collector_number: collectorNumber,
+    layout
+  };
+
+  if (faces.length > 0) {
+    nextCard.faces = faces;
+    item.image = faces[0]?.image ?? null;
+    item.highRes = faces[0]?.highRes ?? false;
+  } else {
+    item.image = printing?.image_uris?.png || printing?.image_uris?.normal || item.image || null;
+    item.highRes = Boolean(printing?.image_uris?.png);
+    delete nextCard.faces;
+  }
+
+  item.card = nextCard;
+
+  item.line.set = typeof printing?.set === 'string' ? printing.set.toUpperCase() : item.line.set;
+  item.line.collector = collectorNumber || item.line.collector;
+
+  clearLanguageWarningIfApplicable(item, lang);
+}
+
+function findPreferredPrinting(printings: any[] | undefined, preferredLang: string | null): any | undefined {
+  if (!printings || printings.length === 0) {
+    return undefined;
+  }
+
+  const normalized = normalizeLanguageCode(preferredLang);
+  if (!normalized) {
+    return undefined;
+  }
+
+  return printings.find((printing) => normalizeLanguageCode(printing?.lang) === normalized && hasPrintableImage(printing));
+}
+
+function revertItemToDefaultPrinting(item: ResolvedItemWithMeta): void {
+  if (!item.allPrintings || !item.defaultPrintingId) {
+    return;
+  }
+
+  if (item.selectedPrinting?.id === item.defaultPrintingId) {
+    return;
+  }
+
+  const defaultPrinting = item.allPrintings.find((printing) => printing?.id === item.defaultPrintingId && hasPrintableImage(printing));
+  if (defaultPrinting) {
+    applyPrintingToItem(item, defaultPrinting);
+  }
+}
+
+function applyLanguagePreferenceToItem(item: ResolvedItemWithMeta, preferredLang: string): void {
+  if (!item.allPrintings || item.allPrintings.length === 0) {
+    return;
+  }
+
+  if (!item.defaultPrintingId && item.selectedPrinting?.id) {
+    item.defaultPrintingId = item.selectedPrinting.id;
+  }
+
+  const normalized = normalizeLanguageCode(preferredLang);
+  if (!normalized) {
+    return;
+  }
+
+  const currentLang = normalizeLanguageCode(item.selectedPrinting?.lang || item.card?.lang);
+  if (currentLang === normalized) {
+    return;
+  }
+
+  const preferredPrinting = findPreferredPrinting(item.allPrintings, normalized);
+  if (preferredPrinting) {
+    applyPrintingToItem(item, preferredPrinting);
+  }
+}
+
+function applyLanguagePreferenceToItems(preference: string | null | undefined): void {
+  const normalized = normalizeLanguageCode(preference);
+
+  if (!normalized) {
+    resolvedItems.forEach((item) => {
+      revertItemToDefaultPrinting(item);
+    });
+    return;
+  }
+
+  resolvedItems.forEach((item) => {
+    applyLanguagePreferenceToItem(item, normalized);
+  });
 }
 
 
@@ -2600,6 +2770,7 @@ function getAvailablePrintings(item: ResolvedItemWithMeta): any[] {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .preview-download-btn {
@@ -2633,6 +2804,41 @@ function getAvailablePrintings(item: ResolvedItemWithMeta): any[] {
   display: flex;
   gap: 0.75rem;
   align-items: center;
+}
+
+.language-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.language-selector__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.language-selector__control {
+  appearance: none;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.9rem;
+  color: #111827;
+  background-color: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-width: 220px;
+}
+
+.language-selector__control:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .stat-pill {
@@ -3050,6 +3256,26 @@ function getAvailablePrintings(item: ResolvedItemWithMeta): any[] {
 
   .preview-stats {
     flex-wrap: wrap;
+  }
+
+  .language-selector {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.25rem;
+  }
+
+  .language-selector__label {
+    font-size: 0.75rem;
+  }
+
+  .language-selector__control {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .language-selector {
+    width: 100%;
   }
 
   .community-card {

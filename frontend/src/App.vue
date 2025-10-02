@@ -2769,13 +2769,17 @@ function getAvailablePrintings(item: ResolvedItemWithMeta): any[] {
 .section-controls {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .preview-download-btn {
-  min-width: 190px;
+  flex: 0 0 auto;
+  min-width: 0;
   white-space: nowrap;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.85rem;
 }
 
 .download-error {

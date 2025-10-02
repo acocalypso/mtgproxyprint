@@ -183,14 +183,14 @@ export class ScryfallDataStore {
   }
 
   private async initialize(): Promise<void> {
-    await this.ensureFreshIndex();
+    await this.ensureFreshIndex({ allowBackgroundRefresh: true });
   }
 
   async refreshIfStale(): Promise<boolean> {
     if (!this.refreshPromise) {
       this.refreshPromise = (async () => {
         try {
-          return await this.ensureFreshIndex();
+          return await this.ensureFreshIndex({ allowBackgroundRefresh: true });
         } finally {
           this.refreshPromise = null;
         }
@@ -200,12 +200,28 @@ export class ScryfallDataStore {
     return this.refreshPromise;
   }
 
-  private async ensureFreshIndex(): Promise<boolean> {
+  private async ensureFreshIndex(options: { allowBackgroundRefresh?: boolean } = {}): Promise<boolean> {
+    const { allowBackgroundRefresh = false } = options;
+
     await fsp.mkdir(this.dataDir, { recursive: true });
 
-    const remoteMeta = await fetchBulkMetadata();
-    const localMeta = await this.readLocalMetadata();
     const indexExists = await fileExists(this.indexFile);
+    if (indexExists && !this.allCards.length) {
+      await this.loadIndexFromDisk();
+    }
+
+    let remoteMeta: BulkMetadata | null = null;
+    try {
+      remoteMeta = await fetchBulkMetadata();
+    } catch (error) {
+      if (!this.allCards.length) {
+        throw error;
+      }
+      console.warn('[scryfall] failed to fetch bulk metadata, using cached index', error);
+      return false;
+    }
+
+    const localMeta = await this.readLocalMetadata();
 
     const needsRefresh =
       !indexExists ||
@@ -213,21 +229,35 @@ export class ScryfallDataStore {
       localMeta.schemaVersion !== SCHEMA_VERSION ||
       localMeta.updatedAt !== remoteMeta.updated_at;
 
-    if (needsRefresh) {
-      await this.rebuildIndex(remoteMeta);
+    if (!needsRefresh) {
+      if (!this.allCards.length) {
+        await this.loadIndexFromDisk();
+      }
+      return false;
+    }
+
+    const performRefresh = async () => {
+      await this.rebuildIndex(remoteMeta!);
       const meta: LocalMetadata = {
-        updatedAt: remoteMeta.updated_at,
+        updatedAt: remoteMeta!.updated_at,
         downloadedAt: new Date().toISOString(),
         schemaVersion: SCHEMA_VERSION
       };
       await fsp.writeFile(this.metaFile, JSON.stringify(meta, null, 2), 'utf8');
-    }
-
-    if (needsRefresh || !this.allCards.length) {
       await this.loadIndexFromDisk();
+    };
+
+    const mustWaitForRefresh = !indexExists || !allowBackgroundRefresh || !this.allCards.length;
+
+    if (mustWaitForRefresh) {
+      await performRefresh();
+    } else {
+      performRefresh().catch((error) => {
+        console.error('[scryfall] background refresh failed', error);
+      });
     }
 
-    return needsRefresh;
+    return true;
   }
 
   private async rebuildIndex(metadata: BulkMetadata): Promise<void> {

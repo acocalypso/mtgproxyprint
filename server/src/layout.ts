@@ -3,24 +3,51 @@ interface PaperConfig {
   cardsPerRow: number;
   cardsPerColumn: number;
   maxCardsPerPage: number;
+  widthMm: number;
+  heightMm: number;
+  orientation: 'portrait' | 'landscape';
+  cssSize?: string;
+}
+
+const MM_PER_INCH = 25.4;
+
+function inches(value: number): number {
+  return Math.round(value * MM_PER_INCH * 1000) / 1000;
+}
+
+function formatMm(value: number): string {
+  return Number.parseFloat(value.toFixed(3)).toString();
+}
+
+function resolvePageMargin(available: number): number {
+  if (available >= DEFAULT_PAGE_MARGIN_MM) {
+    return DEFAULT_PAGE_MARGIN_MM;
+  }
+
+  if (available <= MIN_PAGE_MARGIN_MM) {
+    return Math.max(available, 0);
+  }
+
+  return available;
 }
 
 const PAPER_CONFIGS: Record<string, PaperConfig> = {
-  'A4': { cardsPerRow: 3, cardsPerColumn: 3, maxCardsPerPage: 9 },
-  'A3': { cardsPerRow: 4, cardsPerColumn: 6, maxCardsPerPage: 24 },
-  'A5': { cardsPerRow: 2, cardsPerColumn: 2, maxCardsPerPage: 4 },
-  'Letter': { cardsPerRow: 3, cardsPerColumn: 3, maxCardsPerPage: 9 },
-  'Legal': { cardsPerRow: 3, cardsPerColumn: 4, maxCardsPerPage: 12 },
-  'Tabloid': { cardsPerRow: 4, cardsPerColumn: 5, maxCardsPerPage: 20 },
-  'A4-4x2': { cardsPerRow: 4, cardsPerColumn: 2, maxCardsPerPage: 8 },
-  'Letter-4x2': { cardsPerRow: 4, cardsPerColumn: 2, maxCardsPerPage: 8 }
+  'A4': { cardsPerRow: 3, cardsPerColumn: 3, maxCardsPerPage: 9, widthMm: 210, heightMm: 297, orientation: 'portrait' },
+  'A3': { cardsPerRow: 4, cardsPerColumn: 6, maxCardsPerPage: 24, widthMm: 297, heightMm: 420, orientation: 'portrait' },
+  'A5': { cardsPerRow: 2, cardsPerColumn: 2, maxCardsPerPage: 4, widthMm: 148, heightMm: 210, orientation: 'portrait' },
+  'Letter': { cardsPerRow: 3, cardsPerColumn: 3, maxCardsPerPage: 9, widthMm: inches(8.5), heightMm: inches(11), orientation: 'portrait' },
+  'Legal': { cardsPerRow: 3, cardsPerColumn: 4, maxCardsPerPage: 12, widthMm: inches(8.5), heightMm: inches(14), orientation: 'portrait' },
+  'Tabloid': { cardsPerRow: 4, cardsPerColumn: 5, maxCardsPerPage: 20, widthMm: inches(11), heightMm: inches(17), orientation: 'portrait' },
+  'A4-4x2': { cardsPerRow: 4, cardsPerColumn: 2, maxCardsPerPage: 8, widthMm: 297, heightMm: 210, orientation: 'landscape', cssSize: 'A4 landscape' },
+  'Letter-4x2': { cardsPerRow: 4, cardsPerColumn: 2, maxCardsPerPage: 8, widthMm: inches(11), heightMm: inches(8.5), orientation: 'landscape', cssSize: 'Letter landscape' }
 };
 
 const CARD_WIDTH_MM = 63;
 const CARD_HEIGHT_MM = 88;
 const CUT_MARK_THICKNESS_MM = 0.2;
 const CUT_MARK_LENGTH_MM = 4;
-const PAGE_MARGIN_MM = 10;
+const DEFAULT_PAGE_MARGIN_MM = 10;
+const MIN_PAGE_MARGIN_MM = 0.5;
 
 
 export interface Tile {
@@ -41,17 +68,20 @@ export function buildHtml(tiles: Tile[], options: LayoutOptions): string {
   const paperConfig = PAPER_CONFIGS[paper] || PAPER_CONFIGS['A4'];
   const copies = expandTiles(tiles);
 
-  // Calculate page size for custom formats
-  let pageSizeCSS = `size: ${paper};`;
-  if (paper === 'A4-4x2' || paper === 'Letter-4x2') {
-    if (paper === 'A4-4x2') {
-      // A4 landscape: 297mm x 210mm (landscape orientation)
-      pageSizeCSS = `size: A4 landscape;`;
-    } else if (paper === 'Letter-4x2') {
-      // Letter landscape: 11in x 8.5in = 279.4mm x 215.9mm (landscape orientation)
-      pageSizeCSS = `size: Letter landscape;`;
-    }
-  }
+  const baseGridDimensions = getGridDimensions(paperConfig, sanitizedGap);
+  const baseWrapperWidth = baseGridDimensions.width + CUT_MARK_LENGTH_MM * 2;
+  const baseWrapperHeight = baseGridDimensions.height + CUT_MARK_LENGTH_MM * 2;
+  const availableHorizontalMargin = Math.max(0, (paperConfig.widthMm - baseWrapperWidth) / 2);
+  const availableVerticalMargin = Math.max(0, (paperConfig.heightMm - baseWrapperHeight) / 2);
+  const horizontalMargin = resolvePageMargin(availableHorizontalMargin);
+  const verticalMargin = resolvePageMargin(availableVerticalMargin);
+  const contentWidthMm = Math.max(0, paperConfig.widthMm - horizontalMargin * 2);
+  const contentHeightMm = Math.max(0, paperConfig.heightMm - verticalMargin * 2);
+
+  // Determine page size for printing
+  const pageSizeCSS = paperConfig.cssSize
+    ? `size: ${paperConfig.cssSize};`
+    : `size: ${paper};`;
 
   // Group cards into pages based on paper size capacity
   const pages: Array<Array<{ image: string; label?: string }>> = [];
@@ -79,7 +109,7 @@ export function buildHtml(tiles: Tile[], options: LayoutOptions): string {
 
       @page {
         ${pageSizeCSS}
-        margin: ${PAGE_MARGIN_MM}mm;
+        margin: ${formatMm(verticalMargin)}mm ${formatMm(horizontalMargin)}mm;
       }
 
       * {
@@ -92,8 +122,8 @@ export function buildHtml(tiles: Tile[], options: LayoutOptions): string {
       }
 
       .page {
-        width: 100%;
-        height: 100vh;
+        width: ${formatMm(contentWidthMm)}mm;
+        height: ${formatMm(contentHeightMm)}mm;
         display: flex;
         align-items: center;
         justify-content: center;

@@ -871,6 +871,21 @@
         </div>
       </div>
     </section>
+
+    <div
+      v-if="status.loadingPdf"
+      class="pdf-progress-backdrop"
+      role="alert"
+      aria-live="assertive"
+    >
+      <div class="pdf-progress-modal">
+        <div
+          class="pdf-progress-spinner"
+          aria-hidden="true"
+        />
+        <p class="pdf-progress-message">Creating your PDF…</p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -2447,6 +2462,55 @@ function getAvailablePrintings(item: ResolvedItemWithMeta): any[] {
 .community-link--secondary:hover {
   background: #ffffff;
   border-color: rgba(37, 99, 235, 0.4);
+}
+
+.pdf-progress-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4000;
+  backdrop-filter: blur(2px);
+}
+
+.pdf-progress-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2.5rem 3rem;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  min-width: 260px;
+}
+
+.pdf-progress-spinner {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 6px solid #e5e7eb;
+  border-top-color: #2563eb;
+  animation: pdf-spin 0.9s linear infinite;
+}
+
+.pdf-progress-message {
+  font-size: 1.1rem;
+  color: #1f2937;
+  font-weight: 600;
+  text-align: center;
+  margin: 0;
+}
+
+@keyframes pdf-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 1024px) {
